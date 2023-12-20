@@ -1,0 +1,84 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+
+	"config-hub/cfg"
+	"config-hub/domain"
+	"config-hub/util"
+	err "github.com/gomatbase/go-error"
+)
+
+const (
+	UnknownActionError          = err.ErrorF("Unknown Action: $s")
+	ExpectedHosAndProtocolError = err.Error("Expected both host and protocol")
+)
+
+func readProperties() map[string]string {
+	properties := make(map[string]string)
+	input := bufio.NewScanner(os.Stdin)
+	for input.Scan() {
+		line := input.Text()
+
+		if len(line) == 0 {
+			break
+		}
+
+		split := strings.Index(line, "=")
+		properties[line[:split]] = line[split+1:]
+	}
+	return properties
+}
+
+func isKeyPresent(properties map[string]string, key string) bool {
+	_, found := properties[key]
+	return found
+}
+
+func credentials() error {
+	action := os.Args[len(os.Args)-1]
+	cfg.Println("Calling credentials action :", action)
+	switch action {
+	case "get":
+		cfg.Println("Reading properties")
+		properties := readProperties()
+		cfg.Println("properties :", properties)
+		if !isKeyPresent(properties, "host") || !isKeyPresent(properties, "protocol") {
+			return ExpectedHosAndProtocolError
+		}
+
+		request := &domain.CredentialsRequest{
+			Protocol: properties["protocol"],
+			Host:     properties["host"],
+			Repo:     os.Args[len(os.Args)-2],
+		}
+		response := &domain.HttpCredentials{}
+		if e := util.Request("http://localhost:8080", "credentials").PostJsonExchange(&request, &response); e != nil {
+			return e
+		}
+		// credential.helper is only used for https urls
+		protocol := fmt.Sprintf("protocol=%s", request.Protocol)
+		host := fmt.Sprintf("host=%s", request.Host)
+		username := fmt.Sprintf("username=%s", response.Username)
+		password := fmt.Sprintf("password=%s", response.Password)
+		fmt.Println(protocol)
+		cfg.Println(protocol)
+		fmt.Println(host)
+		cfg.Println(host)
+		fmt.Println(username)
+		cfg.Println(username)
+		fmt.Println(password)
+		cfg.Println(password)
+	case "store":
+		readProperties()
+	case "erase":
+		readProperties()
+	default:
+		return UnknownActionError.WithValues(action)
+	}
+
+	return nil
+}
