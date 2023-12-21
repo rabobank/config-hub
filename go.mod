@@ -1,4 +1,4 @@
-module config-hub
+module github.com/rabobank/config-hub
 
 go 1.20
 
