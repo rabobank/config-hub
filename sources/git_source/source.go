@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"config-hub/cfg"
-	"config-hub/domain"
-	"config-hub/sources"
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/domain"
+	"github.com/rabobank/config-hub/sources"
 	"gopkg.in/yaml.v2"
 )
 

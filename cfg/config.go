@@ -7,9 +7,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"config-hub/domain"
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
+	"github.com/rabobank/config-hub/domain"
 )
 
 var (

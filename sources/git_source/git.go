@@ -9,9 +9,9 @@ import (
 	"path"
 	"strings"
 
-	"config-hub/cfg"
-	"config-hub/domain"
 	"github.com/gomatbase/go-log"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/domain"
 )
 
 const (

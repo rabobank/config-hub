@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"config-hub/domain"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/util"
+	"github.com/rabobank/config-hub/domain"
 )
 
 func getParameters(r we.RequestScope) (apps, profiles, labels []string) {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"config-hub/domain"
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/util"
+	"github.com/rabobank/config-hub/domain"
 )
 
 const (

@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"config-hub/cfg"
 	err "github.com/gomatbase/go-error"
+	"github.com/rabobank/config-hub/cfg"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
-	"config-hub/cfg"
-	"config-hub/server"
 	"github.com/gomatbase/go-log"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/server"
 )
 
 const usage = "config-hub v%s\n\n" +

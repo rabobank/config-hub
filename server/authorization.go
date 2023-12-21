@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"config-hub/cfg"
-	"config-hub/util"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/security"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/util"
 )
 
 const (

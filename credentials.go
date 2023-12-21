@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"config-hub/cfg"
-	"config-hub/domain"
-	"config-hub/util"
 	err "github.com/gomatbase/go-error"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/domain"
+	"github.com/rabobank/config-hub/util"
 )
 
 const (

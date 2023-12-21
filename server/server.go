@@ -6,15 +6,15 @@ import (
 	"reflect"
 	"strings"
 
-	"config-hub/cfg"
-	"config-hub/domain"
-	"config-hub/sources"
-	"config-hub/sources/credhub_source"
-	"config-hub/sources/git_source"
 	"github.com/gomatbase/go-log"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/security"
 	"github.com/gomatbase/go-we/util"
+	"github.com/rabobank/config-hub/cfg"
+	"github.com/rabobank/config-hub/domain"
+	"github.com/rabobank/config-hub/sources"
+	"github.com/rabobank/config-hub/sources/credhub_source"
+	"github.com/rabobank/config-hub/sources/git_source"
 )
 
 var (

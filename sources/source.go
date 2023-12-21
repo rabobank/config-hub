@@ -1,7 +1,7 @@
 package sources
 
 import (
-	"config-hub/domain"
+	"github.com/rabobank/config-hub/domain"
 )
 
 const (
