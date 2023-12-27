@@ -10,11 +10,14 @@ import (
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/domain"
+	"github.com/rabobank/credhub-client"
 )
 
 var (
 	Version  = "0.0.0"
 	LogLevel = log.INFO
+
+	DebugOutput = os.Getenv("DEBUG_OUTPUT")
 
 	// credhub & uaaConfiguration configuration
 	OpenIdUrl   = os.Getenv("OPENID_URL")
@@ -61,9 +64,11 @@ func init() {
 }
 
 func Println(items ...any) {
-	f, _ := os.OpenFile("/Users/joaoviegas/Library/Caches/JetBrains/GoLand2023.1/tmp/GoLand/tester", os.O_RDWR|os.O_APPEND|os.O_CREATE, os.ModePerm)
-	fmt.Fprintln(f, items...)
-	f.Close()
+	if len(DebugOutput) != 0 {
+		f, _ := os.OpenFile(DebugOutput, os.O_RDWR|os.O_APPEND|os.O_CREATE, os.ModePerm)
+		fmt.Fprintln(f, items...)
+		f.Close()
+	}
 }
 
 func FinishServerConfiguration() error {
@@ -92,10 +97,26 @@ func FinishServerConfiguration() error {
 		errors.Add("No CF_URL provided")
 	}
 
-	if _, found := os.LookupEnv("CREDHUB-REF"); found {
-		// TODO: configured through credhub
+	if credhubRef, found := os.LookupEnv("CREDHUB-REF"); found {
+		credhubClient, _ := credhub.New(nil)
+		if credentials, e := credhubClient.GetJsonByName(credhubRef); e != nil {
+			errors.Add(fmt.Sprintf("Unable to retrieve credhub credentials from %s : %v", credhubRef, e))
+		} else {
+			var isType bool
+			if Client, isType = credentials["uaa_client"].(string); !isType {
+				errors.Add("uaa_client is not a string")
+			}
+			if Client, isType = credentials["uaa_secret"].(string); !isType {
+				errors.Add("uaa_secret is not a string")
+			}
+			var sources string
+			if sources, isType = credentials["sources"].(string); !isType {
+				errors.Add("sources is not a string")
+			} else if Sources, e = jsonToSources(sources); e != nil {
+				errors.AddError(e)
+			}
+		}
 	} else if sources, found := os.LookupEnv("CH_SOURCES"); found {
-		var e error
 		if Sources, e = jsonToSources(sources); e != nil {
 			errors.AddError(e)
 		}
