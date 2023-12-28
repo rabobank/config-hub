@@ -19,6 +19,18 @@ type GitConfig struct {
 	SkipSslValidation bool     `json:"skipSslValidation"`
 }
 
+func stringOrNull(value *string) string {
+	if value == nil {
+		return "null"
+	}
+	return *value
+}
+
+func (gc *GitConfig) String() string {
+	return fmt.Sprintf("GitConfig{SourceType:%s, Uri:%s, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v}",
+		gc.SourceType, gc.Uri, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation)
+}
+
 func (gc *GitConfig) Type() string {
 	return gc.SourceType
 }
@@ -27,6 +39,8 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 	if properties == nil {
 		return nil
 	}
+
+	fmt.Println("reading git properties", properties)
 
 	errors := err.Errors()
 	if value, found := properties["type"]; !found {
@@ -62,6 +76,7 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 	}
 
 	if value, found := properties["searchPaths"]; found {
+		fmt.Println("searchPaths present", value)
 		if v, isType := value.([]interface{}); !isType {
 			errors.Add(fmt.Sprintf("reading git source configuration with incompatible searchTypes type : %v", value))
 		} else {
@@ -75,6 +90,11 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 			}
 		}
 	}
+	if gc.SearchPaths == nil {
+		gc.SearchPaths = []string{""}
+	}
+
+	fmt.Println("searchPaths are", gc.SearchPaths)
 
 	if value, found := properties["defaultLabel"]; found {
 		if v, isType := value.(string); !isType {

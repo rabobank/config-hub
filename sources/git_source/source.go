@@ -31,6 +31,10 @@ type source struct {
 	searchPaths  []string
 }
 
+func (s *source) String() string {
+	return fmt.Sprintf("GitSource{repo:%s, baseDir:%s, defaultLabel:%s, searchPaths:%s}", s.repo, s.baseDir, s.defaultLabel, s.searchPaths)
+}
+
 func (s *source) FindProperties(app string, profiles []string, requestedLabel string) ([]*domain.PropertySource, error) {
 	l.Debugf("Finding properties from git source %s for app:%s, profiles:%s and label %s", s.repo, app, profiles, requestedLabel)
 	label := s.defaultLabel
@@ -38,16 +42,15 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 		label = requestedLabel
 	}
 
-	if e := refresh(s.baseDir, label); e == nil {
+	if e := refresh(s.baseDir, label); e != nil {
 		if label == "master" {
-			if e = refresh(s.baseDir, "main"); e != nil {
-				return nil, e
-			} else {
+			if e = refresh(s.baseDir, "main"); e == nil {
 				s.defaultLabel = "main"
 			}
 		}
-	} else {
-		l.Errorf("Failed to refresh repository %s : %v", s.repo, e)
+		if e != nil {
+			l.Errorf("Failed to refresh repository %s : %v", s.repo, e)
+		}
 	}
 
 	var sourcesProperties []*domain.PropertySource
@@ -64,7 +67,8 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 }
 
 func (s *source) findFiles(app string, profiles []string) []*os.File {
-	var files []*os.File
+	files := make([]*os.File, 0)
+	fmt.Println("searching for files", s)
 	for _, profile := range profiles {
 		for _, baseDir := range s.searchPaths {
 			baseDir = strings.ReplaceAll(baseDir, "{application}", app)
@@ -75,11 +79,23 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
 				files = append(files, file)
 			}
+			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
+				files = append(files, file)
+			}
+			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
+				files = append(files, file)
+			}
 		}
 		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s-%s.yml", app, profile))); file != nil {
 			files = append(files, file)
 		}
 		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
+			files = append(files, file)
+		}
+		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
+			files = append(files, file)
+		}
+		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
 			files = append(files, file)
 		}
 	}
@@ -91,12 +107,12 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 		if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
 			files = append(files, file)
 		}
-	}
-	if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
-		files = append(files, file)
-	}
-	if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
-		files = append(files, file)
+		if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+			files = append(files, file)
+		}
+		if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+			files = append(files, file)
+		}
 	}
 
 	return files
@@ -104,6 +120,7 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 
 func openFile(filename string) *os.File {
 	if f, e := os.Open(filename); e == nil {
+		fmt.Println("reading ", filename)
 		return f
 	}
 	return nil
@@ -137,6 +154,9 @@ func Source(sourceConfig domain.SourceConfig, index int) (sources.Source, error)
 		} else {
 			result.defaultLabel = *gitConfig.DefaultLabel
 		}
+
+		result.searchPaths = gitConfig.SearchPaths
+		result.repo = gitConfig.Uri
 
 		return result, nil
 	}

@@ -15,20 +15,19 @@ import (
 
 var (
 	Version  = "0.0.0"
-	LogLevel = log.INFO
+	LogLevel = log.DEBUG
 
 	DebugOutput = os.Getenv("DEBUG_OUTPUT")
 
 	// credhub & uaaConfiguration configuration
-	OpenIdUrl   = os.Getenv("OPENID_URL")
-	UaaUrl      = os.Getenv("UAA_URL")
-	Client      = os.Getenv("CLIENT_ID")
-	Secret      = os.Getenv("CLIENT_SECRET")
-	ClientScope = os.Getenv("AUTHORIZED_CLIENT_SCOPE")
+	OpenIdUrl = os.Getenv("OPENID_URL")
+	UaaUrl    = os.Getenv("UAA_URL")
+	Client    = os.Getenv("CLIENT_ID")
+	Secret    = os.Getenv("CLIENT_SECRET")
 
 	// cf configuration
 	CfUrl             = "https://api.cf.internal"
-	ServiceInstanceId = os.Getenv("cf.service-instance-id")
+	ServiceInstanceId = os.Getenv("SERVICE_INSTANCE_ID")
 
 	Port        = "8080"
 	HttpTimeout = 5
@@ -106,7 +105,7 @@ func FinishServerConfiguration() error {
 			if Client, isType = credentials["uaa_client"].(string); !isType {
 				errors.Add("uaa_client is not a string")
 			}
-			if Client, isType = credentials["uaa_secret"].(string); !isType {
+			if Secret, isType = credentials["uaa_secret"].(string); !isType {
 				errors.Add("uaa_secret is not a string")
 			}
 			var sources string
@@ -162,6 +161,8 @@ func jsonToSources(sources string) ([]domain.SourceConfig, error) {
 			errors.Add(fmt.Sprintf("source without source type %v", properties))
 		}
 	}
+
+	fmt.Println("sources :", sourcesArray)
 
 	if errors.Count() == 0 {
 		errors = nil

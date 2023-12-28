@@ -184,12 +184,14 @@ func (r *HttpRequest) PostJsonExchange(object any, result any) error {
 
 	response, e := r.DoWithResponse(http.MethodPost)
 	if e != nil {
+		cfg.Println(e)
 		return e
 	}
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		body, e := io.ReadAll(response.Body)
+		cfg.Println(response.StatusCode)
 		cfg.Println(e)
 		cfg.Println(string(body))
 		return errors.New("failed request")

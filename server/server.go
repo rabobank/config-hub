@@ -1,8 +1,10 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 
@@ -31,6 +33,7 @@ func Server() {
 		l.Critical(e)
 	}
 
+	l.Infof("OpenId Url: %s", cfg.OpenIdUrl)
 	openIdProvider := security.OpenIdIdentityProvider(cfg.OpenIdUrl).
 		Client(cfg.Client, cfg.Secret).Scope("cloud_controller.read", "openid").
 		UserEnrichment(enrichUaaUser).
@@ -47,7 +50,7 @@ func Server() {
 		Path("/credentials").Authorize(security.AuthorizationFunc(localhost)).
 		Path("/secrets", "/secrets/add", "/secrets/delete", "/secrets/list").Authentication(bearerAuthenticationProvider).Authorize(allowedUsers).
 		Path("/dashboard").Authentication(ssoAuthenticationProvider).Authorize(allowedUsers).
-		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope(cfg.ClientScope)).
+		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope("config_server_" + cfg.ServiceInstanceId + ".read")).
 		Build()
 
 	engine := we.New()
@@ -76,8 +79,8 @@ func Server() {
 
 func localhost(_ *security.User, scope we.RequestScope) bool {
 	// TODO check that it comes from the localhost
-	fmt.Println(scope.Request().RemoteAddr)
-	return true
+	parts := strings.Split(scope.Request().RemoteAddr, ":")
+	return parts[0] == "127.0.0.1"
 }
 
 func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
@@ -97,7 +100,15 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	}
 
 	if sources != nil {
-		util.ReplyJson(w, http.StatusOK, sources)
+		response := &domain.Configs{
+			App:      app,
+			Profiles: profiles,
+			Sources:  sources,
+		}
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		encoder.Encode(response)
+		util.ReplyJson(w, http.StatusOK, response)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -107,6 +118,7 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 func setupSources() error {
 	var e error
 	propertySources = make([]sources.Source, len(cfg.Sources))
+	fmt.Println(cfg.Sources)
 	for i, sourceCfg := range cfg.Sources {
 		switch sourceCfg.Type() {
 		case "git":
