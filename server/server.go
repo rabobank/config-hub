@@ -60,8 +60,8 @@ func Server() {
 	engine.HandleMethod("POST", "/credentials", git_source.ServeCredentials)
 
 	// credentials management endpoints
-	engine.HandleMethod("PUT", "/secrets/add", credhub_source.AddSecrets)
-	engine.HandleMethod("PUT", "/secrets", credhub_source.AddSecrets)
+	engine.HandleMethod("POST", "/secrets/add", credhub_source.AddSecrets)
+	engine.HandleMethod("POST", "/secrets", credhub_source.AddSecrets)
 	engine.HandleMethod("DELETE", "/secrets/delete", credhub_source.DeleteSecrets)
 	engine.HandleMethod("DELETE", "/secrets", credhub_source.DeleteSecrets)
 	engine.HandleMethod("GET", "/secrets/list", credhub_source.ListSecretsCompatible)
