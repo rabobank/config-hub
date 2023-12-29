@@ -68,7 +68,6 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 
 func (s *source) findFiles(app string, profiles []string) []*os.File {
 	files := make([]*os.File, 0)
-	fmt.Println("searching for files", s)
 	for _, profile := range profiles {
 		for _, baseDir := range s.searchPaths {
 			baseDir = strings.ReplaceAll(baseDir, "{application}", app)
@@ -120,7 +119,7 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 
 func openFile(filename string) *os.File {
 	if f, e := os.Open(filename); e == nil {
-		fmt.Println("reading ", filename)
+		l.Info("reading ", filename)
 		return f
 	}
 	return nil

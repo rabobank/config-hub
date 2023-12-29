@@ -1,10 +1,8 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 
@@ -105,9 +103,6 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 			Profiles: profiles,
 			Sources:  sources,
 		}
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", "  ")
-		encoder.Encode(response)
 		util.ReplyJson(w, http.StatusOK, response)
 	} else {
 		w.WriteHeader(http.StatusNotFound)

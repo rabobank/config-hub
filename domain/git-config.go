@@ -40,8 +40,6 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 		return nil
 	}
 
-	fmt.Println("reading git properties", properties)
-
 	errors := err.Errors()
 	if value, found := properties["type"]; !found {
 		errors.Add("reading git source configuration from source without type")
@@ -76,7 +74,6 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 	}
 
 	if value, found := properties["searchPaths"]; found {
-		fmt.Println("searchPaths present", value)
 		if v, isType := value.([]interface{}); !isType {
 			errors.Add(fmt.Sprintf("reading git source configuration with incompatible searchTypes type : %v", value))
 		} else {
