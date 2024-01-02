@@ -23,8 +23,8 @@ github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/gomatbase/go-error v1.1.0 h1:doJtNeg1wQOu9IvQ40A7Vpi4LFf3u1f7wG2AzryzL+k=
 github.com/gomatbase/go-error v1.1.0/go.mod h1:d3HzpiS+Krm1TquKSdlk1cPoWwQur7/w4YpU9yc+sF8=
-github.com/gomatbase/go-log v1.0.1 h1:F1Mx8eOw7ct6V6DkNEk8+o1SBrqCHkZhZuxau6EPaik=
-github.com/gomatbase/go-log v1.0.1/go.mod h1:KSySRvI0XFuE90Xb81kLp3LfrtRxEmDO2I9mLWafVpc=
+github.com/gomatbase/go-log v1.1.0 h1:35drL7p28GSWk9Gxp7gXhnsfKELdClZl7oo9bqGSXnE=
+github.com/gomatbase/go-log v1.1.0/go.mod h1:fBx5uqIjAT5T+9lenRaEgFX8tIcvC9AYewNQ7j0FpMI=
 github.com/gomatbase/go-we v1.0.0-b3 h1:zAPhSchmCb2FtVbG3xUQOdbsc8LfmnDO/+dlTmfrewc=
 github.com/gomatbase/go-we v1.0.0-b3/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
