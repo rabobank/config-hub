@@ -25,8 +25,8 @@ github.com/gomatbase/go-error v1.1.0 h1:doJtNeg1wQOu9IvQ40A7Vpi4LFf3u1f7wG2Azryz
 github.com/gomatbase/go-error v1.1.0/go.mod h1:d3HzpiS+Krm1TquKSdlk1cPoWwQur7/w4YpU9yc+sF8=
 github.com/gomatbase/go-log v1.1.0 h1:35drL7p28GSWk9Gxp7gXhnsfKELdClZl7oo9bqGSXnE=
 github.com/gomatbase/go-log v1.1.0/go.mod h1:fBx5uqIjAT5T+9lenRaEgFX8tIcvC9AYewNQ7j0FpMI=
-github.com/gomatbase/go-we v1.0.0-b3 h1:zAPhSchmCb2FtVbG3xUQOdbsc8LfmnDO/+dlTmfrewc=
-github.com/gomatbase/go-we v1.0.0-b3/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
+github.com/gomatbase/go-we v1.0.0-b4 h1:l1rQ3nigMqjuzN/YPC3hZCzp9+eZ8n157jzry4qfxMk=
+github.com/gomatbase/go-we v1.0.0-b4/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
