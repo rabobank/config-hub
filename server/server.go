@@ -48,7 +48,7 @@ func Server() {
 		Path("/credentials").Authorize(security.AuthorizationFunc(localhost)).
 		Path("/secrets", "/secrets/add", "/secrets/delete", "/secrets/list").Authentication(bearerAuthenticationProvider).Authorize(allowedUsers).
 		Path("/dashboard").Authentication(ssoAuthenticationProvider).Authorize(allowedUsers).
-		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope("config_server_" + cfg.ServiceInstanceId + ".read")).
+		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope("config_hub_" + cfg.ServiceInstanceId + ".read")).
 		Build()
 
 	engine := we.New()
