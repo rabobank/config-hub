@@ -1,9 +1,7 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"github.com/gomatbase/go-log"
@@ -18,8 +16,7 @@ import (
 )
 
 var (
-	l, _            = log.GetWithOptions("MAIN", log.Standard().WithFailingCriticals().WithStartingLevel(cfg.LogLevel))
-	propertySources []sources.Source
+	l, _ = log.GetWithOptions("MAIN", log.Standard().WithFailingCriticals().WithStartingLevel(cfg.LogLevel))
 )
 
 func Server() {
@@ -27,7 +24,7 @@ func Server() {
 		l.Critical(e)
 	}
 
-	if e := setupSources(); e != nil {
+	if e := sources.Setup(); e != nil {
 		l.Critical(e)
 	}
 
@@ -66,7 +63,7 @@ func Server() {
 	engine.HandleMethod("GET", "/secrets", credhub_source.ListSecrets)
 
 	// dashboard
-	engine.HandleMethod("GET", "/dashboard", dashboard)
+	engine.HandleMethod("GET", "/dashboard", sources.Dashboard)
 
 	// config-server compatible endpoints
 	engine.HandleMethod("GET", "/{app}/{profiles}", findProperties)
@@ -76,7 +73,6 @@ func Server() {
 }
 
 func localhost(_ *security.User, scope we.RequestScope) bool {
-	// TODO check that it comes from the localhost
 	parts := strings.Split(scope.Request().RemoteAddr, ":")
 	return parts[0] == "127.0.0.1"
 }
@@ -87,46 +83,17 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	label := scope.Var("label")
 
 	l.Debugf("Received properties request for app: %s, profiles: %v and label: %s", app, profiles, label)
-
-	var sources []*domain.PropertySource
-	for _, source := range propertySources {
-		if foundProperties, e := source.FindProperties(app, profiles, label); e != nil {
-			l.Errorf("Error when calling source %v: %v", reflect.TypeOf(source).Name(), e)
-		} else if foundProperties != nil {
-			sources = append(sources, foundProperties...)
-		}
-	}
-
-	if sources != nil {
+	if properties := sources.FindProperties(app, profiles, label); properties != nil {
 		response := &domain.Configs{
 			App:      app,
 			Profiles: profiles,
-			Sources:  sources,
+			Sources:  properties,
 		}
-		util.ReplyJson(w, http.StatusOK, response)
+		if e := util.ReplyJson(w, http.StatusOK, response); e != nil {
+			l.Errorf("Error when replying to properties request: %v", e)
+		}
 	} else {
 		w.WriteHeader(http.StatusNotFound)
-	}
-	return nil
-}
-
-func setupSources() error {
-	var e error
-	propertySources = make([]sources.Source, len(cfg.Sources))
-	fmt.Println(cfg.Sources)
-	for i, sourceCfg := range cfg.Sources {
-		switch sourceCfg.Type() {
-		case "git":
-			if propertySources[i], e = git_source.Source(sourceCfg, i); e != nil {
-				l.Critical(e)
-			}
-		case "credhub":
-			if propertySources[i], e = credhub_source.Source(sourceCfg); e != nil {
-				l.Critical(e)
-			}
-		default:
-			l.Criticalf("Unsupported source type %s\n", sourceCfg.Type())
-		}
 	}
 
 	return nil
