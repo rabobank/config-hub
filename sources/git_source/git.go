@@ -1,6 +1,7 @@
 package git_source
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"net/url"
@@ -15,8 +16,21 @@ import (
 )
 
 const (
+	Remote                  = true
+	Local                   = false
 	CredentialHelperCommand = "%s credentials %s"
 )
+
+var (
+	localBranchParameters  = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)"}
+	remoteBranchParameters = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)", "--remote"}
+)
+
+type Branch struct {
+	Name     string
+	CommitId string
+	Date     string
+}
 
 func initializeGitRepository(config *domain.GitConfig, baseDir string) error {
 	var repoPath string
@@ -65,6 +79,38 @@ func refresh(baseDir string, label string) error {
 	}
 
 	return nil
+}
+
+func listBranches(baseDir string, remote bool) ([]Branch, error) {
+	if output, e := git(baseDir, "fetch"); e != nil {
+		l.Error(output)
+	} else if l.Level() >= log.DEBUG {
+		l.Debug(output)
+	}
+
+	parameters := localBranchParameters
+	if remote {
+		l.Debug("Listing remote branches")
+		parameters = remoteBranchParameters
+	} else {
+		l.Debug("Listing local branches")
+	}
+	if output, e := git(baseDir, parameters...); e != nil {
+		l.Error(output)
+		return nil, e
+	} else {
+		var branches []Branch
+		scanner := bufio.NewScanner(output)
+		for scanner.Scan() {
+			branch := scanner.Text()
+			branches = append(branches, Branch{
+				Name:     branch[65:],
+				Date:     branch[40:65],
+				CommitId: branch[:40],
+			})
+		}
+		return branches, scanner.Err()
+	}
 }
 
 func git(workingDir string, parameters ...string) (*bytes.Buffer, error) {

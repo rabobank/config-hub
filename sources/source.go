@@ -8,24 +8,17 @@ import (
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/config-hub/sources/credhub_source"
 	"github.com/rabobank/config-hub/sources/git_source"
-)
-
-const (
-	DefaultLabel = "master"
+	"github.com/rabobank/config-hub/sources/spi"
 )
 
 var (
 	l, _            = log.GetWithOptions("SRC", log.Standard().WithFailingCriticals().WithStartingLevel(cfg.LogLevel))
-	propertySources []Source
+	propertySources []spi.Source
 )
-
-type Source interface {
-	FindProperties(app string, profiles []string, label string) ([]*domain.PropertySource, error)
-}
 
 func Setup() error {
 	var e error
-	propertySources = make([]Source, len(cfg.Sources))
+	propertySources = make([]spi.Source, len(cfg.Sources))
 	for i, sourceCfg := range cfg.Sources {
 		switch sourceCfg.Type() {
 		case "git":

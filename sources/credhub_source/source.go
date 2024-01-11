@@ -8,7 +8,7 @@ import (
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
-	"github.com/rabobank/config-hub/sources"
+	"github.com/rabobank/config-hub/sources/spi"
 	"github.com/rabobank/credhub-client"
 )
 
@@ -103,6 +103,14 @@ func (ci *credentialsIndex) filterCredentials(apps, profiles, labels []string) [
 type source struct {
 	prefix string
 	client credhub.Client
+}
+
+func (s *source) Name() string {
+	return "credhub"
+}
+
+func (s *source) DashboardReport() *string {
+	return nil
 }
 
 func (s *source) appendProfilesSecrets(app string, profiles []string, label string, result []*domain.PropertySource) []*domain.PropertySource {
@@ -341,7 +349,7 @@ func extractScope(name string) (string, string, string) {
 	return components[size-4], components[size-3], components[size-2]
 }
 
-func Source(sourceConfig domain.SourceConfig) (result sources.Source, e error) {
+func Source(sourceConfig domain.SourceConfig) (result spi.Source, e error) {
 	if defaultSource != nil {
 		return nil, OnlyOneCredhubSourceError
 	} else if credhubConfig, isType := sourceConfig.(*domain.CredhubConfig); !isType {

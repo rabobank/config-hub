@@ -2,7 +2,9 @@ package git_source
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"path"
@@ -14,7 +16,7 @@ import (
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
-	"github.com/rabobank/config-hub/sources"
+	"github.com/rabobank/config-hub/sources/spi"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,6 +26,44 @@ const (
 
 var l, _ = log.GetWithOptions("GIT_SOURCE", log.Standard().WithLogPrefix(log.Name, log.LogLevel, log.Separator).WithStartingLevel(cfg.LogLevel))
 
+var dashboardTemplate = template.Must(template.New("dashboard").Parse("" +
+	"                    <div class=\"source-report-group\">\n" +
+	"                        <h3 class=\"title\">Remote Branches</h3>\n" +
+	"{{range .Remote}}" +
+	"                        <div class=\"git-branch\">\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                                <span class=\"label\">Name</span>&nbsp;<span class=\"value\">{{.Name}}</span>\n" +
+	"                            </div>\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                               <span class=\"label\">Commit</span>&nbsp;<span class=\"value\">{{.CommitId}}</span>\n" +
+	"                            </div>\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                                <span class=\"label\">Commit Date</span>&nbsp;<span class=\"value\">{{.Date}}</span>\n" +
+	"                            </div>\n" +
+	"                        </div>\n" +
+	"{{else}}" +
+	"                        <div class=\"error\">Unable to show remote branches. May be an invalid PAT.</div>\n" +
+	"{{end}}" +
+	"                    </div>\n" +
+	"                    <div class=\"source-report-group\">\n" +
+	"                        <h3 class=\"title\">Local Branches</h3>\n" +
+	"{{range .Local}}" +
+	"                        <div class=\"git-branch\">\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                                <span class=\"label\">Name</span>&nbsp;<span class=\"value\">{{.Name}}</span>\n" +
+	"                            </div>\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                               <span class=\"label\">Commit</span>&nbsp;<span class=\"value\">{{.CommitId}}</span>\n" +
+	"                            </div>\n" +
+	"                            <div class=\"source-report-line\">\n" +
+	"                                <span class=\"label\">Commit Date</span>&nbsp;<span class=\"value\">{{.Date}}</span>\n" +
+	"                            </div>\n" +
+	"                        </div>\n" +
+	"{{else}}" +
+	"                        <div class=\"error\">No local branches checked out. Probably never been successfully used.</div>\n" +
+	"{{end}}" +
+	"                    </div>\n"))
+
 type source struct {
 	repo         string
 	baseDir      string
@@ -31,8 +71,36 @@ type source struct {
 	searchPaths  []string
 }
 
+type Branches struct {
+	Remote []Branch
+	Local  []Branch
+}
+
 func (s *source) String() string {
 	return fmt.Sprintf("GitSource{repo:%s, baseDir:%s, defaultLabel:%s, searchPaths:%s}", s.repo, s.baseDir, s.defaultLabel, s.searchPaths)
+}
+
+func (s *source) Name() string {
+	return s.repo
+}
+
+func (s *source) DashboardReport() *string {
+	branches := &Branches{}
+	var e error
+	if branches.Remote, e = listBranches(s.baseDir, Remote); e != nil {
+		l.Errorf("Unable to list remote branches : %v", e)
+	}
+	if branches.Local, e = listBranches(s.baseDir, Local); e != nil {
+		l.Errorf("Unable to list remote branches : %v", e)
+	}
+	buffer := &bytes.Buffer{}
+	if e = dashboardTemplate.Execute(buffer, branches); e != nil {
+		l.Errorf("Failure to execute the template : %v", e)
+		return nil
+	}
+
+	report := buffer.String()
+	return &report
 }
 
 func (s *source) FindProperties(app string, profiles []string, requestedLabel string) ([]*domain.PropertySource, error) {
@@ -125,7 +193,7 @@ func openFile(filename string) *os.File {
 	return nil
 }
 
-func Source(sourceConfig domain.SourceConfig, index int) (sources.Source, error) {
+func Source(sourceConfig domain.SourceConfig, index int) (spi.Source, error) {
 	if gitConfig, isType := sourceConfig.(*domain.GitConfig); !isType {
 		return nil, InvalidConfigurationObjectError
 	} else {
