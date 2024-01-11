@@ -7,7 +7,7 @@ require (
 	github.com/gomatbase/go-log v1.1.0
 	github.com/gomatbase/go-we v1.0.0-b4
 	github.com/rabobank/credhub-client v0.0.1
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
