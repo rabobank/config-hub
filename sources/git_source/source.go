@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
@@ -29,6 +30,9 @@ var l, _ = log.GetWithOptions("GIT_SOURCE", log.Standard().WithLogPrefix(log.Nam
 var dashboardTemplate = template.Must(template.New("dashboard").Parse("" +
 	"                    <div class=\"source-report-group\">\n" +
 	"                        <h3 class=\"title\">Remote Branches</h3>\n" +
+	"{{if .Error}}" +
+	"                        <div class=\"error\">{{.Error}}</div>\n" +
+	"{{end}}" +
 	"{{range .Remote}}" +
 	"                        <div class=\"git-branch\">\n" +
 	"                            <div class=\"source-report-line\">\n" +
@@ -65,13 +69,17 @@ var dashboardTemplate = template.Must(template.New("dashboard").Parse("" +
 	"                    </div>\n"))
 
 type source struct {
+	repository   *Repository
 	repo         string
 	baseDir      string
 	defaultLabel string
 	searchPaths  []string
+
+	lock sync.Mutex
 }
 
 type Branches struct {
+	Error  string
 	Remote []Branch
 	Local  []Branch
 }
@@ -87,10 +95,16 @@ func (s *source) Name() string {
 func (s *source) DashboardReport() *string {
 	branches := &Branches{}
 	var e error
-	if branches.Remote, e = listBranches(s.baseDir, Remote); e != nil {
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if branches.Remote, e = s.repository.Branches(Remote); e != nil {
+		// the error is probably from a PAT issue, listing tracked remote branches is not expected to fail
 		l.Errorf("Unable to list remote branches : %v", e)
+		branches.Error = e.Error()
 	}
-	if branches.Local, e = listBranches(s.baseDir, Local); e != nil {
+	if branches.Local, e = s.repository.Branches(Local); e != nil {
+		// not really expected
 		l.Errorf("Unable to list remote branches : %v", e)
 	}
 	buffer := &bytes.Buffer{}
@@ -105,14 +119,18 @@ func (s *source) DashboardReport() *string {
 
 func (s *source) FindProperties(app string, profiles []string, requestedLabel string) ([]*domain.PropertySource, error) {
 	l.Debugf("Finding properties from git source %s for app:%s, profiles:%s and label %s", s.repo, app, profiles, requestedLabel)
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	label := s.defaultLabel
 	if len(requestedLabel) != 0 {
 		label = requestedLabel
 	}
 
-	if e := refresh(s.baseDir, label); e != nil {
+	if e := s.repository.Refresh(label); e != nil {
 		if label == "master" {
-			if e = refresh(s.baseDir, "main"); e == nil {
+			if e = s.repository.Refresh("main"); e == nil {
 				s.defaultLabel = "main"
 			}
 		}
@@ -185,33 +203,27 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 	return files
 }
 
-func openFile(filename string) *os.File {
-	if f, e := os.Open(filename); e == nil {
-		l.Info("reading ", filename)
-		return f
-	}
-	return nil
-}
-
 func Source(sourceConfig domain.SourceConfig, index int) (spi.Source, error) {
 	if gitConfig, isType := sourceConfig.(*domain.GitConfig); !isType {
 		return nil, InvalidConfigurationObjectError
 	} else {
+		var e error
 		result := &source{}
 		result.baseDir = path.Join(cfg.BaseDir, fmt.Sprintf("config-repo-%d", index))
 
 		// this block can be used for local tests cleaning up temporary folders
-		if _, e := os.Stat(result.baseDir); e == nil {
+		if _, e = os.Stat(result.baseDir); e == nil {
 			// an object already exists. Let's attempt to delete it
 			if e = os.RemoveAll(result.baseDir); e != nil {
 				return nil, e
 			}
 		}
 
-		if e := os.MkdirAll(result.baseDir, os.ModeDir|os.ModePerm); e != nil {
+		if e = os.MkdirAll(result.baseDir, os.ModeDir|os.ModePerm); e != nil {
 			return nil, e
 		}
-		if e := initializeGitRepository(gitConfig, result.baseDir); e != nil {
+
+		if result.repository, e = Git(gitConfig, result.baseDir); e != nil {
 			return nil, e
 		}
 		addCredentials(gitConfig)
@@ -228,6 +240,14 @@ func Source(sourceConfig domain.SourceConfig, index int) (spi.Source, error) {
 		return result, nil
 	}
 
+}
+
+func openFile(filename string) *os.File {
+	if f, e := os.Open(filename); e == nil {
+		l.Info("reading ", filename)
+		return f
+	}
+	return nil
 }
 
 func readFile(file *os.File) (*domain.PropertySource, error) {

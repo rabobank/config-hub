@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
@@ -24,6 +25,10 @@ const (
 var (
 	localBranchParameters  = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)"}
 	remoteBranchParameters = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)", "--remote"}
+
+	commands = [][]string{
+		{"init"},
+	}
 )
 
 type Branch struct {
@@ -32,7 +37,12 @@ type Branch struct {
 	Date     string
 }
 
-func initializeGitRepository(config *domain.GitConfig, baseDir string) error {
+type Repository struct {
+	base string
+	lock sync.Mutex
+}
+
+func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 	var repoPath string
 	if strings.HasPrefix(config.Uri, "git@") {
 		repoPath = config.Uri[strings.Index(config.Uri, ":")+1:]
@@ -42,50 +52,70 @@ func initializeGitRepository(config *domain.GitConfig, baseDir string) error {
 		repoPath = strings.ReplaceAll(gitUrl.Path, " ", "%20")
 	}
 
-	if output, e := git(baseDir, "init"); e != nil {
+	repository := &Repository{base: baseDir}
+	repository.lock.Lock()
+	defer repository.lock.Unlock()
+
+	if output, e := repository.exec([]string{"init"}); e != nil {
 		l.Error(output)
-		return e
+		return nil, e
 	}
 
-	if output, e := git(baseDir, "config", "--add", "credential.helper", fmt.Sprintf(CredentialHelperCommand, path.Join(cfg.BaseDir, path.Base(os.Args[0])), repoPath)); e != nil {
+	if output, e := repository.exec([]string{"config", "--add", "credential.helper", fmt.Sprintf(CredentialHelperCommand, path.Join(cfg.BaseDir, path.Base(os.Args[0])), repoPath)}); e != nil {
 		l.Error(output)
-		return e
+		return nil, e
 	}
 
-	if output, e := git(baseDir, "remote", "add", "origin", config.Uri); e != nil {
+	if output, e := repository.exec([]string{"remote", "add", "origin", config.Uri}); e != nil {
 		l.Error(output)
-		return e
+		return nil, e
 	}
 
-	return nil
+	return repository, nil
 }
 
-func refresh(baseDir string, label string) error {
-	if output, e := git(baseDir, "fetch"); e != nil {
+func (r *Repository) Fetch() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if output, e := r.exec([]string{"fetch"}); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
 		l.Debug(output)
 	}
 
-	if output, e := git(baseDir, "checkout", label); e != nil {
-		l.Error(output)
+	return nil
+}
+
+func (r *Repository) Refresh(label string) error {
+	if e := r.Fetch(); e != nil {
 		return e
 	}
 
-	if output, e := git(baseDir, "pull"); e != nil {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if output, e := r.exec([]string{"checkout", label}); e != nil {
 		l.Error(output)
 		return e
+	} else if l.Level() >= log.DEBUG {
+		l.Debug(output)
+	}
+
+	if output, e := r.exec([]string{"pull"}); e != nil {
+		l.Error(output)
+		return e
+	} else if l.Level() >= log.DEBUG {
+		l.Debug(output)
 	}
 
 	return nil
 }
 
-func listBranches(baseDir string, remote bool) ([]Branch, error) {
-	if output, e := git(baseDir, "fetch"); e != nil {
-		l.Error(output)
-	} else if l.Level() >= log.DEBUG {
-		l.Debug(output)
+func (r *Repository) Branches(remote bool) ([]Branch, error) {
+	if e := r.Fetch(); e != nil {
+		l.Error("Listing Branches failed on fetch:", e)
 	}
 
 	parameters := localBranchParameters
@@ -95,7 +125,7 @@ func listBranches(baseDir string, remote bool) ([]Branch, error) {
 	} else {
 		l.Debug("Listing local branches")
 	}
-	if output, e := git(baseDir, parameters...); e != nil {
+	if output, e := r.exec(parameters); e != nil {
 		l.Error(output)
 		return nil, e
 	} else {
@@ -113,9 +143,15 @@ func listBranches(baseDir string, remote bool) ([]Branch, error) {
 	}
 }
 
-func git(workingDir string, parameters ...string) (*bytes.Buffer, error) {
+func (r *Repository) Exec(parameters ...string) (*bytes.Buffer, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.exec(parameters)
+}
+
+func (r *Repository) exec(parameters []string) (*bytes.Buffer, error) {
 	cmd := exec.Command("git", parameters...)
-	cmd.Dir = workingDir
+	cmd.Dir = r.base
 	cmd.Env = os.Environ()
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
