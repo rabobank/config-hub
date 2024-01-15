@@ -38,7 +38,11 @@ var dashboardTemplate = template.Must(template.New("dashboard").Parse("<!DOCTYPE
 	"{{.RawHtml}}" +
 	"                </div>\n" +
 	"{{end}}" +
-	"{{end}}"))
+	"            </div>\n" +
+	"{{end}}" +
+	"        </div>\n" +
+	"    </body>\n" +
+	"</html>"))
 
 func Dashboard(writer we.ResponseWriter, _ we.RequestScope) error {
 	writer.WriteHeader(http.StatusOK)
