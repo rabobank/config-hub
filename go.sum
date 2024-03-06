@@ -29,6 +29,7 @@ github.com/gomatbase/go-log v1.1.0 h1:35drL7p28GSWk9Gxp7gXhnsfKELdClZl7oo9bqGSXn
 github.com/gomatbase/go-log v1.1.0/go.mod h1:fBx5uqIjAT5T+9lenRaEgFX8tIcvC9AYewNQ7j0FpMI=
 github.com/gomatbase/go-we v1.0.0-b4 h1:l1rQ3nigMqjuzN/YPC3hZCzp9+eZ8n157jzry4qfxMk=
 github.com/gomatbase/go-we v1.0.0-b4/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
+github.com/gomatbase/go-we v1.0.0-b8/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
@@ -160,3 +161,5 @@ gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.3.0 h1:clyUAQHOM3G0M3f5vQj7LuJrETvjVot3Z5el9nffUtU=
 gopkg.in/yaml.v2 v2.3.0/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

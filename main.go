@@ -31,7 +31,6 @@ func printUsage() int {
 }
 
 func main() {
-	cfg.Println("os.Args", os.Args)
 	if len(os.Args) == 1 {
 		fmt.Println("Logging level :", log.LevelName(cfg.LogLevel))
 		server.Server()
@@ -39,8 +38,8 @@ func main() {
 		os.Exit(printUsage())
 	} else {
 		cfg.FinishCredentialsConfiguration()
-		if e := credentials(); e != nil {
-			cfg.Println("error getting credentials", e)
+		if e := Credentials(); e != nil {
+			fmt.Println("error getting credentials", e)
 			os.Exit(printUsage())
 		}
 	}

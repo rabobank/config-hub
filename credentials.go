@@ -20,6 +20,8 @@ const (
 func readProperties() map[string]string {
 	properties := make(map[string]string)
 	input := bufio.NewScanner(os.Stdin)
+
+	// ignore the error, we'll just stop reading
 	for input.Scan() {
 		line := input.Text()
 
@@ -38,7 +40,7 @@ func isKeyPresent(properties map[string]string, key string) bool {
 	return found
 }
 
-func credentials() error {
+func Credentials() error {
 	action := os.Args[len(os.Args)-1]
 	cfg.Println("Calling credentials action :", action)
 	switch action {

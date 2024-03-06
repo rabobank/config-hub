@@ -28,7 +28,7 @@ func Server() {
 		l.Critical(e)
 	}
 
-	l.Infof("OpenId Url: %s", cfg.OpenIdUrl)
+	l.Infof("OpenId Url: %s\n", cfg.OpenIdUrl)
 	openIdProvider := security.OpenIdIdentityProvider(cfg.OpenIdUrl).
 		Client(cfg.Client, cfg.Secret).Scope("cloud_controller.read", "openid").
 		UserEnrichment(enrichUaaUser).

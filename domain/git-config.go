@@ -87,9 +87,7 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 			}
 		}
 	}
-	if gc.SearchPaths == nil {
-		gc.SearchPaths = []string{""}
-	}
+	gc.SearchPaths = append(gc.SearchPaths, "")
 
 	fmt.Println("searchPaths are", gc.SearchPaths)
 

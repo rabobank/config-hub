@@ -18,7 +18,7 @@ import (
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/config-hub/sources/spi"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -153,6 +153,9 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 }
 
 func (s *source) findFiles(app string, profiles []string) []*os.File {
+	// TODO improve this process
+
+	l.Info("Searching for files for app ", app, " and profiles ", profiles)
 	files := make([]*os.File, 0)
 	for _, profile := range profiles {
 		for _, baseDir := range s.searchPaths {
@@ -161,27 +164,23 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.yml", app, profile))); file != nil {
 				files = append(files, file)
 			}
+			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.yaml", app, profile))); file != nil {
+				files = append(files, file)
+			}
 			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
 				files = append(files, file)
 			}
-			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
-				files = append(files, file)
+			if app != "application" {
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
+					files = append(files, file)
+				}
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yaml", profile))); file != nil {
+					files = append(files, file)
+				}
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
+					files = append(files, file)
+				}
 			}
-			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
-				files = append(files, file)
-			}
-		}
-		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s-%s.yml", app, profile))); file != nil {
-			files = append(files, file)
-		}
-		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
-			files = append(files, file)
-		}
-		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
-			files = append(files, file)
-		}
-		if file := openFile(path.Join(s.baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
-			files = append(files, file)
 		}
 	}
 	for _, baseDir := range s.searchPaths {
@@ -189,16 +188,27 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 		if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
 			files = append(files, file)
 		}
+		if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
+			files = append(files, file)
+		}
 		if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
 			files = append(files, file)
 		}
-		if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
-			files = append(files, file)
-		}
-		if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
-			files = append(files, file)
+		if app != "application" {
+			if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+				files = append(files, file)
+			}
+			if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+				files = append(files, file)
+			}
+			if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+				files = append(files, file)
+			}
+
 		}
 	}
+
+	l.Info("Found files ", files)
 
 	return files
 }
@@ -288,8 +298,8 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 	switch t {
 	case reflect.Map:
 		// if it's a map we expect it to be a type of map[string]interface{}
-		for key, value := range object.(map[any]any) {
-			if e := flattenProperties(prefix+"."+key.(string), value, properties); e != nil {
+		for key, value := range object.(map[string]any) {
+			if e := flattenProperties(prefix+"."+key, value, properties); e != nil {
 				errors.AddError(e)
 			}
 		}
