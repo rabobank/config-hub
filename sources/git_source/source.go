@@ -303,6 +303,13 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 				errors.AddError(e)
 			}
 		}
+	case reflect.Slice:
+		// if it's an array we expect it to be a type of []]interface{}
+		for i, value := range object.([]interface{}) {
+			if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
+				errors.AddError(e)
+			}
+		}
 	case reflect.Array:
 		// if it's an array we expect it to be a type of []]interface{}
 		for i, value := range object.([]interface{}) {
