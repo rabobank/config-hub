@@ -1,0 +1,21 @@
+test:
+  object:
+    array:
+      - attribute-1: user
+        attribute-2: password
+        attribute-3: cluster-1
+        sub-object:
+          attribute-1: user
+          attribute-2: password
+          attribute-3: cluster-2
+      - attribute-1: user-2
+        attribute-2: password-2
+        attribute-3: cluster-1
+        sub-object:
+          attribute-1: user-2
+          attribute-2: password-2
+          attribute-3: cluster-2
+    sub-object:
+      attr-1: value
+      attr-2: true
+      attr-3: 2
