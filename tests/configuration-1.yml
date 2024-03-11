@@ -19,3 +19,6 @@ test:
       attr-1: value
       attr-2: true
       attr-3: 2
+    attr-1:
+    attr-2: OFF
+    attr-3: ON

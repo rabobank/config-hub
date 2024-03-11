@@ -13,5 +13,8 @@
   "test.object.array[1].sub-object.attribute-3": "cluster-2",
   "test.object.sub-object.attr-1": "value",
   "test.object.sub-object.attr-2": true,
-  "test.object.sub-object.attr-3": 2
+  "test.object.sub-object.attr-3": 2,
+  "test.object.attr-1": "",
+  "test.object.attr-2": false,
+  "test.object.attr-3": true
 }

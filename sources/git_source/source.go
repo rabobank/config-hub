@@ -289,6 +289,10 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 
 	errors := err.Errors()
 
+	if object == nil {
+		object = ""
+	}
+
 	t := reflect.ValueOf(object).Kind()
 	if t == reflect.Pointer {
 		object = reflect.ValueOf(object).Elem().Interface()
@@ -318,6 +322,16 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 			}
 		}
 	default:
+		if t == reflect.String {
+			// special string-to-boolean cases
+			switch strings.ToUpper(object.(string)) {
+			case "OFF":
+				object = false
+			case "ON":
+				object = true
+			}
+		}
+
 		if len(prefix) == 0 || prefix[0] != '.' {
 			(*properties)[""] = object
 		} else {
