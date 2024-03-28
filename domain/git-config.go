@@ -10,6 +10,7 @@ import (
 
 type GitConfig struct {
 	SourceType        string   `json:"type"`
+	DeepClone         bool     `json:"deepClone"`
 	Uri               string   `json:"uri"`
 	DefaultLabel      *string  `json:"defaultLabel,omitempty"`
 	SearchPaths       []string `json:"searchPaths,omitempty"`
@@ -67,9 +68,17 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 
 	if value, found := properties["defaultLabel"]; found {
 		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabele type : %s", v))
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabele type : %v", value))
 		} else {
 			gc.DefaultLabel = &v
+		}
+	}
+
+	if value, found := properties["deepClone"]; found {
+		if v, isType := value.(bool); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible deepClone type : %v", value))
+		} else {
+			gc.DeepClone = v
 		}
 	}
 

@@ -78,7 +78,7 @@ func (r *Repository) Fetch() error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	if output, e := r.exec([]string{"fetch"}); e != nil {
+	if output, e := r.exec([]string{"fetch", "--depth=1"}); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
@@ -103,7 +103,7 @@ func (r *Repository) Refresh(label string) error {
 		l.Debug(output)
 	}
 
-	if output, e := r.exec([]string{"pull"}); e != nil {
+	if output, e := r.exec([]string{"pull", "--depth=1"}); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
