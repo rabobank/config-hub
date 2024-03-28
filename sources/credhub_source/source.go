@@ -298,9 +298,7 @@ func (s *source) addSecrets(apps []string, profiles []string, labels []string, s
 	if len(labels) == 0 {
 		labels = []string{"master"}
 	}
-	fmt.Println("adding secrets to", apps, profiles, labels, secrets)
 	secrets = flattenSecrets("", secrets)
-	fmt.Println("adding secrets to", apps, profiles, labels, secrets)
 	existingCredentials, e := s.getExistingCredentials()
 	if e != nil {
 		return e
@@ -314,17 +312,13 @@ func (s *source) addSecrets(apps []string, profiles []string, labels []string, s
 						fmt.Println("Unable to read credentials", credentialName)
 						return e
 					} else {
-						fmt.Println("Merging maps", existingCredentials, secrets)
 						secrets = mergeSecrets(existingCredential, secrets)
-						fmt.Println("Merged Map", secrets)
 					}
 				}
 
-				if body, e := s.client.SetJsonByName(credentialName, secrets); e != nil {
+				if _, e := s.client.SetJsonByName(credentialName, secrets); e != nil {
 					fmt.Println("Failed to write credentials", e)
 					return e
-				} else {
-					fmt.Println("written credentials are", body)
 				}
 			}
 		}
