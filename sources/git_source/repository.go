@@ -25,10 +25,6 @@ const (
 var (
 	localBranchParameters  = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)"}
 	remoteBranchParameters = []string{"branch", "--format", "%(objectname)%(authordate:iso)%(refname:short)", "--remote"}
-
-	commands = [][]string{
-		{"init"},
-	}
 )
 
 type Branch struct {
@@ -38,8 +34,10 @@ type Branch struct {
 }
 
 type Repository struct {
-	base string
-	lock sync.Mutex
+	base  string
+	fetch []string
+	pull  []string
+	lock  sync.Mutex
 }
 
 func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
@@ -53,6 +51,15 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 	}
 
 	repository := &Repository{base: baseDir}
+
+	if !config.DeepClone {
+		repository.fetch = []string{"fetch", "--depth=1"}
+		repository.pull = []string{"pull", "--depth=1"}
+	} else {
+		repository.fetch = []string{"fetch"}
+		repository.pull = []string{"pull"}
+	}
+
 	repository.lock.Lock()
 	defer repository.lock.Unlock()
 
@@ -78,7 +85,7 @@ func (r *Repository) Fetch() error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	if output, e := r.exec([]string{"fetch", "--depth=1"}); e != nil {
+	if output, e := r.exec(r.fetch); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
@@ -103,7 +110,7 @@ func (r *Repository) Refresh(label string) error {
 		l.Debug(output)
 	}
 
-	if output, e := r.exec([]string{"pull", "--depth=1"}); e != nil {
+	if output, e := r.exec(r.pull); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
