@@ -79,7 +79,13 @@ func localhost(_ *security.User, scope we.RequestScope) bool {
 
 func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	app := scope.Var("app")
-	profiles := strings.Split(scope.Var("profiles"), ",")
+	var profiles []string
+
+	// revert order of profiles returned to follow config-server logic... so... first priority requested should be last one served
+	for _, profile := range strings.Split(scope.Var("profiles"), ",") {
+		profiles = append([]string{profile}, profiles...)
+	}
+
 	label := scope.Var("label")
 
 	l.Debugf("Received properties request for app: %s, profiles: %v and label: %s", app, profiles, label)
