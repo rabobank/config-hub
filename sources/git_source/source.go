@@ -353,10 +353,8 @@ func readPropertiesFile(file *os.File) (map[string]interface{}, error) {
 	properties := make(map[string]interface{})
 	for scanner.Scan() {
 		key, value, found := strings.Cut(scanner.Text(), "=")
-		if found {
+		if found && !strings.HasPrefix(key, "#") {
 			properties[key] = value
-		} else {
-			properties[key] = nil
 		}
 	}
 	if e := scanner.Err(); e != nil && e != io.EOF {
