@@ -78,6 +78,11 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 		return nil, e
 	}
 
+	if output, e := repository.exec([]string{"config", "pull.rebase", "true"}); e != nil {
+		l.Error(output)
+		return nil, e
+	}
+
 	return repository, nil
 }
 
