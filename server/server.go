@@ -87,6 +87,7 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	}
 
 	label := scope.Var("label")
+	label = strings.ReplaceAll(label, "(_)", "/")
 
 	l.Debugf("Received properties request for app: %s, profiles: %v and label: %s", app, profiles, label)
 	if properties := sources.FindProperties(app, profiles, label); properties != nil {
