@@ -93,7 +93,7 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	if properties := sources.FindProperties(app, profiles, label); properties != nil {
 		response := &domain.Configs{
 			App:      app,
-			Profiles: profiles,
+			Profiles: strings.Split(scope.Var("profiles"), ","),
 			Sources:  properties,
 		}
 		if e := util.ReplyJson(w, http.StatusOK, response); e != nil {
