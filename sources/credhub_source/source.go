@@ -22,6 +22,12 @@ var l, _ = log.GetWithOptions("CREDHUB_SOURCE", log.Standard().WithFailingCritic
 var defaultSource *source
 
 type credentialsIndex map[string]map[string]map[string]string
+type secret struct {
+	name    string
+	app     string
+	profile string
+	label   string
+}
 
 func newCredentialsIndex() *credentialsIndex {
 	index := credentialsIndex(make(map[string]map[string]map[string]string))
@@ -60,13 +66,13 @@ func (ci *credentialsIndex) contains(app, profile, label string) bool {
 	return false
 }
 
-func (ci *credentialsIndex) filterCredentials(apps, profiles, labels []string) []string {
-	var result []string
+func (ci *credentialsIndex) filterCredentials(apps, profiles, labels []string) []secret {
+	var result []secret
 	if apps == nil {
-		for _, p := range *ci {
-			for _, b := range p {
-				for _, credential := range b {
-					result = append(result, credential)
+		for app, p := range *ci {
+			for profile, b := range p {
+				for label, credential := range b {
+					result = append(result, secret{credential, app, profile, label})
 				}
 			}
 		}
@@ -74,22 +80,22 @@ func (ci *credentialsIndex) filterCredentials(apps, profiles, labels []string) [
 		for _, app := range apps {
 			appProfiles := (*ci)[app]
 			if profiles == nil {
-				for _, b := range appProfiles {
-					for _, credential := range b {
-						result = append(result, credential)
+				for profile, b := range appProfiles {
+					for label, credential := range b {
+						result = append(result, secret{credential, app, profile, label})
 					}
 				}
 			} else if appProfiles != nil {
 				for _, profile := range profiles {
 					profileLabels := appProfiles[profile]
 					if labels == nil {
-						for _, credential := range profileLabels {
-							result = append(result, credential)
+						for label, credential := range profileLabels {
+							result = append(result, secret{credential, app, profile, label})
 						}
 					} else if profileLabels != nil {
 						for _, label := range labels {
 							if credential, found := profileLabels[label]; found {
-								result = append(result, credential)
+								result = append(result, secret{credential, app, profile, label})
 							}
 						}
 					}
@@ -158,12 +164,16 @@ func (s *source) findProperties(apps []string, profiles []string, labels []strin
 	}
 
 	relevantCredentials := existingCredentials.filterCredentials(apps, ensureDefaultProfile(profiles), labels)
-	for _, name := range relevantCredentials {
-		if credential, e := s.client.GetJsonByName(name); e != nil {
+	for _, credReference := range relevantCredentials {
+		if credential, e := s.client.GetJsonByName(credReference.name); e != nil {
 			// log it
+			result = append(result, &domain.PropertySource{
+				Source:     fmt.Sprintf("credhub-%s-%s-%s", credReference.app, credReference.profile, credReference.label),
+				Properties: make(map[string]interface{}),
+			})
 		} else {
 			result = append(result, &domain.PropertySource{
-				Source:     name,
+				Source:     fmt.Sprintf("credhub-%s-%s-%s", credReference.app, credReference.profile, credReference.label),
 				Properties: credential,
 			})
 		}
@@ -267,11 +277,11 @@ func (s *source) listSecrets(apps []string, profiles []string, labels []string) 
 
 	relevantCredentials := credentials.filterCredentials(apps, profiles, labels)
 	result := make(map[string]map[string]map[string][]string)
-	for _, name := range relevantCredentials {
-		if credential, e := s.client.GetJsonByName(name); e != nil {
+	for _, credReference := range relevantCredentials {
+		if credential, e := s.client.GetJsonByName(credReference.name); e != nil {
 			// log it
 		} else {
-			app, profile, label := extractScope(name)
+			app, profile, label := extractScope(credReference.name)
 			appSecrets := result[app]
 			if appSecrets == nil {
 				appSecrets = make(map[string]map[string][]string)
