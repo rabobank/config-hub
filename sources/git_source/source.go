@@ -354,16 +354,32 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 		}
 	case reflect.Slice:
 		// if it's an array we expect it to be a type of []]interface{}
-		for i, value := range object.([]interface{}) {
-			if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
-				errors.AddError(e)
+		if len(object.([]interface{})) == 0 {
+			if len(prefix) == 0 || prefix[0] != '.' {
+				(*properties)[prefix] = object
+			} else {
+				(*properties)[prefix[1:]] = object
+			}
+		} else {
+			for i, value := range object.([]interface{}) {
+				if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
+					errors.AddError(e)
+				}
 			}
 		}
 	case reflect.Array:
 		// if it's an array we expect it to be a type of []]interface{}
-		for i, value := range object.([]interface{}) {
-			if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
-				errors.AddError(e)
+		if len(object.([]interface{})) == 0 {
+			if len(prefix) == 0 || prefix[0] != '.' {
+				(*properties)[prefix] = object
+			} else {
+				(*properties)[prefix[1:]] = object
+			}
+		} else {
+			for i, value := range object.([]interface{}) {
+				if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
+					errors.AddError(e)
+				}
 			}
 		}
 	default:
@@ -378,7 +394,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 		}
 
 		if len(prefix) == 0 || prefix[0] != '.' {
-			(*properties)[""] = object
+			(*properties)[prefix] = object
 		} else {
 			(*properties)[prefix[1:]] = object
 		}

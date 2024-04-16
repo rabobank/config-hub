@@ -11,6 +11,7 @@
   "test.object.array[1].sub-object.attribute-1": "user-2",
   "test.object.array[1].sub-object.attribute-2": "password-2",
   "test.object.array[1].sub-object.attribute-3": "cluster-2",
+  "test.object.emptyArray": [],
   "test.object.sub-object.attr-1": "value",
   "test.object.sub-object.attr-2": true,
   "test.object.sub-object.attr-3": 2,

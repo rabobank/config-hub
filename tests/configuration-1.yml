@@ -15,6 +15,7 @@ test:
           attribute-1: user-2
           attribute-2: password-2
           attribute-3: cluster-2
+    emptyArray: []
     sub-object:
       attr-1: value
       attr-2: true
