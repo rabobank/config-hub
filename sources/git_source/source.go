@@ -173,7 +173,11 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 	for _, profile := range profiles {
 		for _, baseDir := range searchPaths {
 			for _, app := range apps {
-				baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
+				profileSearchPath := false
+				if strings.Contains(baseDir, "{profile}") {
+					baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
+					profileSearchPath = true
+				}
 				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.yml", app, profile))); file != nil {
 					files = append(files, file)
 				}
@@ -182,6 +186,17 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 				}
 				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
 					files = append(files, file)
+				}
+				if profileSearchPath {
+					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
+						files = append(files, file)
+					}
+					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
+						files = append(files, file)
+					}
+					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
+						files = append(files, file)
+					}
 				}
 				if app != "application" {
 					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
@@ -193,33 +208,46 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
 						files = append(files, file)
 					}
+					if profileSearchPath {
+						if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+							files = append(files, file)
+						}
+						if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+							files = append(files, file)
+						}
+						if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+							files = append(files, file)
+						}
+					}
 				}
 			}
 		}
 	}
 	for _, baseDir := range searchPaths {
-		for _, app := range apps {
-			baseDir = strings.ReplaceAll(baseDir, "{application}", app)
-			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
-				files = append(files, file)
-			}
-			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
-				files = append(files, file)
-			}
-			if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
-				files = append(files, file)
-			}
-			if app != "application" {
-				if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+		if !strings.Contains(baseDir, "{profile}") {
+			for _, app := range apps {
+				baseDir = strings.ReplaceAll(baseDir, "{application}", app)
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
 					files = append(files, file)
 				}
-				if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
 					files = append(files, file)
 				}
-				if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
 					files = append(files, file)
 				}
+				if app != "application" {
+					if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+						files = append(files, file)
+					}
+					if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+						files = append(files, file)
+					}
+					if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+						files = append(files, file)
+					}
 
+				}
 			}
 		}
 	}
@@ -269,6 +297,7 @@ func Source(sourceConfig domain.SourceConfig, index int) (spi.Source, error) {
 }
 
 func openFile(filename string) *os.File {
+	// fmt.Println("Testing", filename)
 	if f, e := os.Open(filename); e == nil {
 		l.Info("reading ", filename)
 		return f
