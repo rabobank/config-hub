@@ -121,12 +121,15 @@ func (s *source) appendProfilesSecrets(app string, profiles []string, label stri
 		}
 		name := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, profile, label)
 		fmt.Println("Getting secrets from", name)
-		if secrets, e := s.client.GetJsonByName(name); e == nil {
-			result = append(result, &domain.PropertySource{
-				Source:     fmt.Sprintf("credhub-%s-%s-%s", app, profile, label),
-				Properties: secrets,
-			})
+		var secrets map[string]any
+		var e error
+		if secrets, e = s.client.GetJsonByName(name); e != nil {
+			secrets = make(map[string]any)
 		}
+		result = append(result, &domain.PropertySource{
+			Source:     fmt.Sprintf("credhub-%s-%s-%s", app, profile, label),
+			Properties: secrets,
+		})
 	}
 	if !defaultRequested {
 		name := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, "default", label)
