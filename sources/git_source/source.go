@@ -152,6 +152,20 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 	return sourcesProperties, nil
 }
 
+func addExistingFiles(file string, files []*os.File) []*os.File {
+	if file := openFile(file + "yml"); file != nil {
+		files = append(files, file)
+	}
+	if file := openFile(file + "yaml"); file != nil {
+		files = append(files, file)
+	}
+	if file := openFile(file + "properties"); file != nil {
+		files = append(files, file)
+	}
+
+	return files
+}
+
 func (s *source) findFiles(app string, profiles []string) []*os.File {
 	// TODO improve this process
 
@@ -178,48 +192,32 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 					baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
 					profileSearchPath = true
 				}
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.yml", app, profile))); file != nil {
-					files = append(files, file)
-				}
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.yaml", app, profile))); file != nil {
-					files = append(files, file)
-				}
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.properties", app, profile))); file != nil {
-					files = append(files, file)
-				}
+				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.", app, profile)), files)
 				if profileSearchPath {
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
-						files = append(files, file)
-					}
+					files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", profile)), files)
 				}
-				if app != "application" {
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yaml", profile))); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
-						files = append(files, file)
-					}
-					if profileSearchPath {
-						if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
-							files = append(files, file)
-						}
-						if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
-							files = append(files, file)
-						}
-						if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
-							files = append(files, file)
-						}
-					}
-				}
+				// if app != "application" {
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yaml", profile))); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				// 	if profileSearchPath {
+				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+				// 			files = append(files, file)
+				// 		}
+				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+				// 			files = append(files, file)
+				// 		}
+				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+				// 			files = append(files, file)
+				// 		}
+				// 	}
+				// }
 			}
 		}
 	}
@@ -227,27 +225,19 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 		if !strings.Contains(baseDir, "{profile}") {
 			for _, app := range apps {
 				baseDir = strings.ReplaceAll(baseDir, "{application}", app)
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yml", app))); file != nil {
-					files = append(files, file)
-				}
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.yaml", app))); file != nil {
-					files = append(files, file)
-				}
-				if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.properties", app))); file != nil {
-					files = append(files, file)
-				}
-				if app != "application" {
-					if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
-						files = append(files, file)
-					}
-					if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
-						files = append(files, file)
-					}
-
-				}
+				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", app)), files)
+				// if app != "application" {
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
+				// 		files = append(files, file)
+				// 	}
+				//
+				// }
 			}
 		}
 	}

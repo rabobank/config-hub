@@ -392,7 +392,7 @@ func ensureApplication(app string) []string {
 	if len(app) == 0 || app == "application" {
 		return []string{"application"}
 	}
-	return []string{app, "application"}
+	return []string{app}
 }
 
 func ensureMasterLabel(label string) []string {
