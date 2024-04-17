@@ -40,24 +40,12 @@ func Setup() error {
 
 func FindProperties(app string, profiles []string, label string) []*domain.PropertySource {
 	var sources []*domain.PropertySource
+	apps := strings.Split(app, ",")
 	for _, source := range propertySources {
-		requestsDefaultApplication := false
-		for _, app := range strings.Split(app, ",") {
-			if foundProperties, e := source.FindProperties(app, profiles, label); e != nil {
-				l.Errorf("Error when calling source %v: %v", reflect.TypeOf(source).Name(), e)
-			} else if foundProperties != nil {
-				sources = append(sources, foundProperties...)
-			}
-			if app == "application" {
-				requestsDefaultApplication = true
-			}
-		}
-		if !requestsDefaultApplication {
-			if foundProperties, e := source.FindProperties("application", profiles, label); e != nil {
-				l.Errorf("Error when calling source %v: %v", reflect.TypeOf(source).Name(), e)
-			} else if foundProperties != nil {
-				sources = append(sources, foundProperties...)
-			}
+		if foundProperties, e := source.FindProperties(apps, profiles, label); e != nil {
+			l.Errorf("Error when calling source %v: %v", reflect.TypeOf(source).Name(), e)
+		} else if foundProperties != nil {
+			sources = append(sources, foundProperties...)
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/config-hub/sources/spi"
+	"github.com/rabobank/config-hub/util"
 	"github.com/rabobank/credhub-client"
 )
 
@@ -150,8 +151,8 @@ func (s *source) appendProfilesSecrets(app string, profiles []string, label stri
 	return result
 }
 
-func (s *source) FindProperties(app string, profiles []string, label string) ([]*domain.PropertySource, error) {
-	return s.findProperties(ensureApplication(app), ensureDefaultProfile(profiles), ensureMasterLabel(label))
+func (s *source) FindProperties(apps []string, profiles []string, label string) ([]*domain.PropertySource, error) {
+	return s.findProperties(ensureApplication(apps), ensureDefaultProfile(profiles), ensureMasterLabel(label))
 }
 
 func (s *source) findProperties(apps []string, profiles []string, labels []string) ([]*domain.PropertySource, error) {
@@ -388,11 +389,14 @@ func Source(sourceConfig domain.SourceConfig) (result spi.Source, e error) {
 	}
 }
 
-func ensureApplication(app string) []string {
-	if len(app) == 0 || app == "application" {
+func ensureApplication(apps []string) []string {
+	if len(apps) == 0 || len(apps) == 1 && apps[0] == "application" {
 		return []string{"application"}
 	}
-	return []string{app}
+	if !util.HasApplication(apps) {
+		return append(apps, "application")
+	}
+	return apps
 }
 
 func ensureMasterLabel(label string) []string {

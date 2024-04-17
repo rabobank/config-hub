@@ -5,7 +5,7 @@ import (
 )
 
 type Source interface {
-	FindProperties(app string, profiles []string, label string) ([]*domain.PropertySource, error)
+	FindProperties(apps []string, profiles []string, label string) ([]*domain.PropertySource, error)
 	Name() string
 	DashboardReport() *string
 }

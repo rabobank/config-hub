@@ -18,6 +18,7 @@ import (
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/config-hub/sources/spi"
+	"github.com/rabobank/config-hub/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -117,8 +118,8 @@ func (s *source) DashboardReport() *string {
 	return &report
 }
 
-func (s *source) FindProperties(app string, profiles []string, requestedLabel string) ([]*domain.PropertySource, error) {
-	l.Debugf("Finding properties from git source %s for app:%s, profiles:%s and label %s", s.repo, app, profiles, requestedLabel)
+func (s *source) FindProperties(apps []string, profiles []string, requestedLabel string) ([]*domain.PropertySource, error) {
+	l.Debugf("Finding properties from git source %s for app(s):%v, profiles:%s and label %s", s.repo, apps, profiles, requestedLabel)
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -141,7 +142,7 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 
 	var sourcesProperties []*domain.PropertySource
 	// search all app specific files
-	for _, file := range s.findFiles(app, profiles) {
+	for _, file := range s.findFiles(apps, profiles) {
 		if fileProperties, e := readFile(file); e != nil {
 			l.Error(e)
 		} else {
@@ -153,24 +154,17 @@ func (s *source) FindProperties(app string, profiles []string, requestedLabel st
 }
 
 func addExistingFiles(file string, files []*os.File) []*os.File {
-	if file := openFile(file + "yml"); file != nil {
-		files = append(files, file)
+	for _, ext := range []string{"yml", "yaml", "properties"} {
+		if file := openFile(file + ext); file != nil {
+			files = append(files, file)
+		}
 	}
-	if file := openFile(file + "yaml"); file != nil {
-		files = append(files, file)
-	}
-	if file := openFile(file + "properties"); file != nil {
-		files = append(files, file)
-	}
-
 	return files
 }
 
-func (s *source) findFiles(app string, profiles []string) []*os.File {
+func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 	// TODO improve this process
 
-	// let's try to support the multiple apps approach
-	apps := strings.Split(app, ",")
 	var searchPaths []string
 	for _, path := range s.searchPaths {
 		if strings.Contains(path, "{application}") {
@@ -182,7 +176,7 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 		}
 	}
 
-	l.Info("Searching for files for app ", app, " and profiles ", profiles)
+	l.Info("Searching for files for app(s) ", apps, " and profiles ", profiles)
 	files := make([]*os.File, 0)
 	for _, profile := range profiles {
 		for _, baseDir := range searchPaths {
@@ -194,30 +188,8 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 				}
 				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.", app, profile)), files)
 				if profileSearchPath {
-					files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", profile)), files)
+					files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", app)), files)
 				}
-				// if app != "application" {
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yml", profile))); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.yaml", profile))); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.properties", profile))); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				// 	if profileSearchPath {
-				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
-				// 			files = append(files, file)
-				// 		}
-				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
-				// 			files = append(files, file)
-				// 		}
-				// 		if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
-				// 			files = append(files, file)
-				// 		}
-				// 	}
-				// }
 			}
 		}
 	}
@@ -226,23 +198,33 @@ func (s *source) findFiles(app string, profiles []string) []*os.File {
 			for _, app := range apps {
 				baseDir = strings.ReplaceAll(baseDir, "{application}", app)
 				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", app)), files)
-				// if app != "application" {
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.yml")); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.yaml")); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				// 	if file := openFile(path.Join(s.baseDir, baseDir, "application.properties")); file != nil {
-				// 		files = append(files, file)
-				// 	}
-				//
-				// }
 			}
 		}
 	}
 
-	l.Info("Found files ", files)
+	if !util.HasApplication(apps) {
+		for _, profile := range profiles {
+			for _, baseDir := range searchPaths {
+				profileSearchPath := false
+				if strings.Contains(baseDir, "{profile}") {
+					baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
+					profileSearchPath = true
+				}
+				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.", profile)), files)
+				if profileSearchPath {
+					files = addExistingFiles(path.Join(s.baseDir, baseDir, "application."), files)
+				}
+			}
+		}
+		for _, baseDir := range searchPaths {
+			if !strings.Contains(baseDir, "{profile}") {
+				for _, app := range apps {
+					baseDir = strings.ReplaceAll(baseDir, "{application}", app)
+					files = addExistingFiles(path.Join(s.baseDir, baseDir, "application."), files)
+				}
+			}
+		}
+	}
 
 	return files
 }
@@ -289,13 +271,19 @@ func Source(sourceConfig domain.SourceConfig, index int) (spi.Source, error) {
 func openFile(filename string) *os.File {
 	// fmt.Println("Testing", filename)
 	if f, e := os.Open(filename); e == nil {
-		l.Info("reading ", filename)
+		l.Info("reading", filename)
 		return f
 	}
 	return nil
 }
 
 func readFile(file *os.File) (*domain.PropertySource, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in readFile", r)
+		}
+	}()
+
 	result := &domain.PropertySource{
 		Source:     file.Name(),
 		Properties: make(map[string]interface{}),
@@ -336,10 +324,24 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 
 	switch t {
 	case reflect.Map:
-		// if it's a map we expect it to be a type of map[string]interface{}
-		for key, value := range object.(map[string]any) {
-			if e := flattenProperties(prefix+"."+key, value, properties); e != nil {
-				errors.AddError(e)
+		// if it's a map we expect it to be a type of map[string]interface{}, although yaml allows for numbers to be keys in which case they are meant to array/map indexes...
+		if m, isType := object.(map[string]interface{}); isType {
+			for key, value := range m {
+				if e := flattenProperties(prefix+"."+key, value, properties); e != nil {
+					errors.AddError(e)
+				}
+			}
+		} else {
+			for key, value := range object.(map[any]any) {
+				if reflect.TypeOf(key).Kind() == reflect.Int {
+					if e := flattenProperties(fmt.Sprintf("%s[%v]", prefix, key), value, properties); e != nil {
+						errors.AddError(e)
+					}
+				} else {
+					if e := flattenProperties(fmt.Sprintf("%s.%v", prefix, key), value, properties); e != nil {
+						errors.AddError(e)
+					}
+				}
 			}
 		}
 	case reflect.Slice:
