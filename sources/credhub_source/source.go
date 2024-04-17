@@ -340,11 +340,78 @@ func (s *source) addSecrets(apps []string, profiles []string, labels []string, s
 	return nil
 }
 
+func (s *source) deleteSecrets(apps []string, profiles []string, labels []string, secrets []string) error {
+	if len(apps) == 0 {
+		apps = []string{"application"}
+	}
+	if len(profiles) == 0 {
+		profiles = []string{"default"}
+	}
+	if len(labels) == 0 {
+		labels = []string{"master"}
+	}
+	existingCredentials, e := s.getExistingCredentials()
+	if e != nil {
+		return e
+	}
+	for _, app := range apps {
+		for _, profile := range profiles {
+			for _, label := range labels {
+				credentialName := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, profile, label)
+				if existingCredentials.contains(app, profile, label) {
+					if existingCredential, e := s.client.GetJsonByName(credentialName); e != nil {
+						fmt.Println("Unable to read credentials", credentialName)
+						return e
+					} else if credentials, deleted := deleteSecrets(existingCredential, secrets); deleted {
+						if _, e := s.client.SetJsonByName(credentialName, credentials); e != nil {
+							fmt.Println("Failed to write credentials", e)
+							return e
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func mergeSecrets(existingSecrets map[string]any, secrets map[string]any) map[string]any {
 	for k, v := range secrets {
 		existingSecrets[k] = v
 	}
 	return existingSecrets
+}
+
+func deleteSecrets(existingSecrets map[string]any, properties []string) (map[string]any, bool) {
+	deleted := false
+	for _, v := range properties {
+		if _, found := existingSecrets[v]; found {
+			delete(existingSecrets, v)
+			deleted = true
+		} else {
+			parts := strings.Split(v, ".")
+			existingSecrets, deleted = findAndDelete(existingSecrets, parts[0], parts[1:])
+		}
+	}
+	return existingSecrets, deleted
+}
+
+func findAndDelete(secrets map[string]any, head string, remainder []string) (map[string]any, bool) {
+	deleted := false
+	if _, found := secrets[head]; found {
+		if len(remainder) == 0 {
+			delete(secrets, head)
+			deleted = true
+		} else if subSecrets, isType := secrets[head].(map[string]any); isType {
+			secrets[head], deleted = findAndDelete(subSecrets, remainder[0], remainder[1:])
+		}
+		// if there are no subSecrets then do nothing
+	} else if len(remainder) > 0 {
+		// the head is not found, merge it with the first reminder, if there is one, and try to delete from there
+		return findAndDelete(secrets, head+"."+remainder[0], remainder[1:])
+	}
+
+	return secrets, deleted
 }
 
 func flattenSecrets(prefix string, secrets map[string]any) map[string]any {
