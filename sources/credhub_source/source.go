@@ -377,7 +377,19 @@ func (s *source) deleteSecrets(apps []string, profiles []string, labels []string
 
 func mergeSecrets(existingSecrets map[string]any, secrets map[string]any) map[string]any {
 	for k, v := range secrets {
-		existingSecrets[k] = v
+		if existingSecret, found := existingSecrets[k]; found {
+			if newSecret, isMap := v.(map[string]any); isMap {
+				if existingSecretMap, isMap := existingSecret.(map[string]any); isMap {
+					existingSecrets[k] = mergeSecrets(existingSecretMap, newSecret)
+				} else {
+					existingSecrets[k] = v
+				}
+			} else {
+				existingSecrets[k] = v
+			}
+		} else {
+			existingSecrets[k] = v
+		}
 	}
 	return existingSecrets
 }
