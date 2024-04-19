@@ -69,13 +69,13 @@ func AddSecrets(w we.ResponseWriter, r we.RequestScope) error {
 }
 
 func DeleteSecrets(w we.ResponseWriter, r we.RequestScope) error {
-	// apps, profiles, labels := getParameters(r)
-	// if secretNames, e := util.ReadJsonBody[[]string](r); e != nil {
-	//     return e
-	// } else if e = defaultSource.deleteSecrets(apps, profiles, labels, *secretNames); e != nil {
-	//     return e
-	// } else {
-	w.WriteHeader(http.StatusAccepted)
-	// }
+	apps, profiles, labels := getParameters(r)
+	if secretNames, e := util.ReadJsonBody[[]string](r); e != nil {
+		return e
+	} else if e = defaultSource.deleteSecrets(apps, profiles, labels, *secretNames); e != nil {
+		return e
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
 	return nil
 }
