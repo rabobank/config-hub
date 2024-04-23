@@ -120,7 +120,10 @@ func FindPropertiesMap(app string, profiles []string, label string) map[string]a
 
 	properties := make(map[string]any)
 	for head != nil {
-		properties = mergeMap(properties, *head.m)
+		if head.m != nil {
+			// merge only if properties are available for the profile
+			properties = mergeMap(properties, *head.m)
+		}
 		head = head.n
 	}
 

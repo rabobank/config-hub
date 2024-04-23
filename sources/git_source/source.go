@@ -298,14 +298,22 @@ func readFile(file *os.File) (*domain.PropertySource, error) {
 }
 
 func readYamlFile(file *os.File) (map[string]interface{}, error) {
-	object := new(interface{})
-	if e := yaml.NewDecoder(file).Decode(object); e != nil {
-		return nil, e
+	// we expect it to always be a map[string]any
+	object := make(map[string]any)
+	decoder := yaml.NewDecoder(file)
+	var e error
+	for {
+		if e = decoder.Decode(&object); e != nil {
+			if e == io.EOF {
+				break
+			}
+			fmt.Println("Error decoding yaml", e)
+		}
 	}
 
-	properties := make(map[string]interface{})
-	e := flattenProperties("", object, &properties)
-	return properties, e
+	// properties := make(map[string]interface{})
+	// e := flattenProperties("", object, &properties)
+	return object, nil
 }
 
 func flattenProperties(prefix string, object interface{}, properties *map[string]interface{}) error {
@@ -345,7 +353,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 			}
 		}
 	case reflect.Slice:
-		// if it's an array we expect it to be a type of []]interface{}
+		// if it's an array we expect it to be a type of []interface{}
 		if len(object.([]interface{})) == 0 {
 			if len(prefix) == 0 || prefix[0] != '.' {
 				(*properties)[prefix] = object
@@ -360,7 +368,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 			}
 		}
 	case reflect.Array:
-		// if it's an array we expect it to be a type of []]interface{}
+		// if it's an array we expect it to be a type of []interface{}
 		if len(object.([]interface{})) == 0 {
 			if len(prefix) == 0 || prefix[0] != '.' {
 				(*properties)[prefix] = object

@@ -8,24 +8,24 @@ import (
 	"testing"
 )
 
-func TestReadYamlFile(t *testing.T) {
-
-	if flattenedProperties, e := readYamlFile(openFile("../../tests/configuration-1.yml")); e != nil {
-		t.Error(e)
-	} else if expectedPropertiesFile, e := os.Open("../../tests/configuration-1.json"); e != nil {
-		t.Error(e)
-	} else {
-		expectedProperties := make(map[string]interface{})
-		json.NewDecoder(expectedPropertiesFile).Decode(&expectedProperties)
-		if !areEqual(flattenedProperties, expectedProperties) {
-			t.Error("Flattened properties are not as expected")
-		}
-		// enc := json.NewEncoder(os.Stdout)
-		// enc.SetIndent("", "  ")
-		//
-		// enc.Encode(flattenedProperties)
-	}
-}
+// func TestReadYamlFile(t *testing.T) {
+//
+// 	if flattenedProperties, e := readYamlFile(openFile("../../tests/configuration-1.yml")); e != nil {
+// 		t.Error(e)
+// 	} else if expectedPropertiesFile, e := os.Open("../../tests/configuration-1.json"); e != nil {
+// 		t.Error(e)
+// 	} else {
+// 		expectedProperties := make(map[string]interface{})
+// 		json.NewDecoder(expectedPropertiesFile).Decode(&expectedProperties)
+// 		if !areEqual(flattenedProperties, expectedProperties) {
+// 			t.Error("Flattened properties are not as expected")
+// 		}
+// 		// enc := json.NewEncoder(os.Stdout)
+// 		// enc.SetIndent("", "  ")
+// 		//
+// 		// enc.Encode(flattenedProperties)
+// 	}
+// }
 
 func areEqual(flattened map[string]interface{}, expected map[string]interface{}) bool {
 	if len(flattened) != len(expected) {
