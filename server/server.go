@@ -6,6 +6,7 @@ import (
 
 	"github.com/gomatbase/go-log"
 	"github.com/gomatbase/go-we"
+	"github.com/gomatbase/go-we/events"
 	"github.com/gomatbase/go-we/security"
 	"github.com/gomatbase/go-we/util"
 	"github.com/rabobank/config-hub/cfg"
@@ -13,6 +14,7 @@ import (
 	"github.com/rabobank/config-hub/sources"
 	"github.com/rabobank/config-hub/sources/credhub_source"
 	"github.com/rabobank/config-hub/sources/git_source"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -66,8 +68,11 @@ func Server() {
 	engine.HandleMethod("GET", "/dashboard", sources.Dashboard)
 
 	// config-server compatible endpoints
-	engine.HandleMethod("GET", "/{app}/{profiles}", findProperties)
+	engine.HandleMethod("GET", "/{app}/{profiles}", findProperties) // will also take care of /{label}/{app}-{profiles}.(json|properties|yml|yaml)
 	engine.HandleMethod("GET", "/{app}/{profiles}/{label}", findProperties)
+
+	// config-server alternative format endpoints
+	engine.HandleMethod("GET", "/{appProfiles}", findFormattedProperties)
 
 	l.Critical(engine.Listen(":" + cfg.Port))
 }
@@ -104,4 +109,79 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 	}
 
 	return nil
+}
+
+func findFormattedProperties(w we.ResponseWriter, scope we.RequestScope) error {
+	app := scope.Var("appProfiles")
+	var suffix string
+	if dotIndex := strings.LastIndex(app, "."); dotIndex == -1 {
+		// not a format specific request and not picked by other handlers... not found
+		return events.NotFoundError
+	} else {
+		suffix = app[dotIndex+1:]
+		app = app[:dotIndex]
+	}
+
+	var replyFunction func(we.ResponseWriter, int, any) error
+	switch suffix {
+	case "json":
+		replyFunction = ReplyJson
+	case "yml", "yaml":
+		replyFunction = ReplyYaml
+	case "properties":
+		replyFunction = ReplyProperties
+	default:
+		return events.BadRequestError
+	}
+
+	// split the app between app and profile(s). for now let's just support simple profiles
+	commaIndex := strings.Index(app, ",")
+	if commaIndex == -1 {
+		// expect single profile
+		commaIndex = len(app)
+	}
+	if dashIndex := strings.LastIndex(app[:commaIndex], "-"); dashIndex == -1 {
+		return events.BadRequestError
+	} else {
+		profiles := app[dashIndex+1:]
+		app = app[:dashIndex]
+		if properties := sources.FindPropertiesMap(app, strings.Split(profiles, ","), ""); properties != nil {
+			if e := replyFunction(w, http.StatusOK, properties); e != nil {
+				l.Errorf("Error when replying in %s to properties request: %v", suffix, e)
+			}
+		} else {
+			return events.NotFoundError
+		}
+	}
+	return nil
+}
+
+func ReplyJson(w we.ResponseWriter, status int, value any) (e error) {
+	return util.ReplyJson(w, http.StatusOK, value)
+}
+
+func ReplyYaml(w we.ResponseWriter, status int, value any) (e error) {
+	var body []byte
+	if body, e = yaml.Marshal(value); e == nil {
+		w.Header().Add("Content-type", "application/yaml")
+		w.WriteHeader(status)
+		if _, e = w.Write(body); e != nil {
+			l.Errorf("Failure to write yaml response through reponse writer: %v", e)
+		}
+	}
+
+	return e
+}
+
+func ReplyProperties(w we.ResponseWriter, status int, value any) (e error) {
+	var body []byte
+	if body, e = yaml.Marshal(value); e == nil {
+		w.Header().Add("Content-type", "text/plain")
+		w.WriteHeader(status)
+		if _, e = w.Write(body); e != nil {
+			l.Errorf("Failure to write yaml response through reponse writer: %v", e)
+		}
+	}
+
+	return e
 }

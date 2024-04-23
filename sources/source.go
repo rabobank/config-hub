@@ -2,6 +2,7 @@ package sources
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/gomatbase/go-log"
@@ -39,6 +40,109 @@ func Setup() error {
 }
 
 func FindProperties(app string, profiles []string, label string) []*domain.PropertySource {
+	sources := findProperties(app, profiles, label)
+	for i, properties := range sources {
+		flattenedProperties := make(map[string]interface{})
+		if e := flattenProperties("", properties.Properties, &flattenedProperties); e != nil {
+			l.Errorf("Failed to flatten properties source %s: %v", properties.Source, e)
+		} else {
+			sources[i].Properties = flattenedProperties
+		}
+	}
+	return sources
+}
+
+type dListItem struct {
+	n *dListItem
+	m *map[string]any
+}
+
+type profileMatch struct {
+	name    string
+	matcher *regexp.Regexp
+}
+
+func pushHead(head *dListItem, m *map[string]any) *dListItem {
+	if head == nil {
+		head = &dListItem{m: m}
+	} else {
+		head = &dListItem{n: head, m: m}
+	}
+	return head
+}
+
+func insert(point *dListItem, m *map[string]any) *dListItem {
+	if point.m == nil {
+		point.m = m
+		return point
+	} else {
+		item := &dListItem{n: point.n, m: m}
+		point.n = item
+		return item
+	}
+}
+
+func FindPropertiesMap(app string, profiles []string, label string) map[string]any {
+	sources := findProperties(app, profiles, label)
+
+	// we now need to merge all source properties from least relevant to most relevant
+	profileIndex := make(map[string]*dListItem)
+	defaultProfile := false
+	var matchingProfiles []*profileMatch
+	var head *dListItem
+	for _, profile := range profiles {
+		if profile == "default" {
+			defaultProfile = true
+		} else {
+			matchingProfiles = append(matchingProfiles, &profileMatch{profile, regexp.MustCompile("^.*-" + profile + ".*.*")})
+		}
+		head = pushHead(head, nil)
+		profileIndex[profile] = head
+	}
+	if !defaultProfile {
+		head = pushHead(head, nil)
+		profileIndex[""] = head
+	}
+
+	for _, source := range sources {
+		matchedProfile := false
+		for _, matchingProfile := range matchingProfiles {
+			if matchingProfile.matcher.MatchString(source.Source) {
+				matchedProfile = true
+				profileIndex[matchingProfile.name] = insert(profileIndex[matchingProfile.name], &source.Properties)
+				break
+			}
+		}
+		if !matchedProfile {
+			profileIndex[""] = insert(profileIndex[""], &source.Properties)
+		}
+	}
+
+	properties := make(map[string]any)
+	for head != nil {
+		properties = mergeMap(properties, *head.m)
+		head = head.n
+	}
+
+	return properties
+}
+
+func mergeMap(baseMap map[string]any, mergingMap map[string]any) map[string]any {
+	for k, v := range mergingMap {
+		if existingSecret, found := baseMap[k]; found {
+			if newSecret, isMap := v.(map[string]any); isMap {
+				if existingSecretMap, isMap := existingSecret.(map[string]any); isMap {
+					baseMap[k] = mergeMap(existingSecretMap, newSecret)
+					continue
+				}
+			}
+		}
+		baseMap[k] = v
+	}
+	return baseMap
+}
+
+func findProperties(app string, profiles []string, label string) []*domain.PropertySource {
 	var sources []*domain.PropertySource
 	apps := strings.Split(app, ",")
 	for _, source := range propertySources {
