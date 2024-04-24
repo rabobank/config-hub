@@ -303,11 +303,17 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 	decoder := yaml.NewDecoder(file)
 	var e error
 	for {
+		saved := object
 		if e = decoder.Decode(&object); e != nil {
 			if e == io.EOF {
 				break
 			}
 			fmt.Println("Error decoding yaml", e)
+		}
+
+		// JV A bug with the yaml parser zeroes the map when reading an empty document (section), this prevents it
+		if len(object) == 0 {
+			object = saved
 		}
 	}
 
