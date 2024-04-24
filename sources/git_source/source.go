@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -162,10 +163,44 @@ func addExistingFiles(file string, files []*os.File) []*os.File {
 	return files
 }
 
+func findMatchingPaths(base string, segments []string) []string {
+	var paths []string
+	if entries, e := os.ReadDir(base); e != nil {
+		l.Errorf("Unable to read directory %s : %v", base, e)
+	} else {
+		match := regexp.MustCompile("^" + strings.ReplaceAll(segments[0], "*", ".*") + "$")
+		for _, entry := range entries {
+			if entry.IsDir() && match.MatchString(entry.Name()) {
+				dir := path.Join(base, entry.Name())
+				if len(segments) == 1 {
+					paths = append(paths, dir)
+				} else {
+					paths = append(paths, findMatchingPaths(dir, segments[1:])...)
+				}
+			}
+		}
+	}
+	return paths
+}
+
+func (s *source) matchingPaths(searchPath, app, profile string) []string {
+	// we replace the placeholders of the search path
+	searchPath = strings.ReplaceAll(strings.ReplaceAll(searchPath, "{application}", app), "{profile}", profile)
+
+	// now we check if there are wildcards
+	if strings.Contains(searchPath, "*") {
+		return findMatchingPaths(s.baseDir, strings.Split(searchPath, "/"))
+	}
+
+	// no wildcards so we return the search path as it is
+	return []string{path.Join(s.baseDir, searchPath)}
+}
+
 func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 	// TODO improve this process
 
 	var searchPaths []string
+	// TODO JV can't remember if this piece of code is still relevant
 	for _, path := range s.searchPaths {
 		if strings.Contains(path, "{application}") {
 			for _, app := range apps {
@@ -181,14 +216,12 @@ func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 	for _, profile := range profiles {
 		for _, baseDir := range searchPaths {
 			for _, app := range apps {
-				profileSearchPath := false
-				if strings.Contains(baseDir, "{profile}") {
-					baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
-					profileSearchPath = true
-				}
-				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s-%s.", app, profile)), files)
-				if profileSearchPath {
-					files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", app)), files)
+				profileSearchPath := strings.Contains(baseDir, "{profile}")
+				for _, searchPath := range s.matchingPaths(baseDir, app, profile) {
+					files = addExistingFiles(path.Join(searchPath, fmt.Sprintf("%s-%s.", app, profile)), files)
+					if profileSearchPath {
+						files = addExistingFiles(path.Join(searchPath, fmt.Sprintf("%s.", app)), files)
+					}
 				}
 			}
 		}
@@ -196,8 +229,9 @@ func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 	for _, baseDir := range searchPaths {
 		if !strings.Contains(baseDir, "{profile}") {
 			for _, app := range apps {
-				baseDir = strings.ReplaceAll(baseDir, "{application}", app)
-				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("%s.", app)), files)
+				for _, searchPath := range s.matchingPaths(baseDir, app, "") {
+					files = addExistingFiles(path.Join(searchPath, fmt.Sprintf("%s.", app)), files)
+				}
 			}
 		}
 	}
@@ -205,22 +239,21 @@ func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 	if !util.HasApplication(apps) {
 		for _, profile := range profiles {
 			for _, baseDir := range searchPaths {
-				profileSearchPath := false
-				if strings.Contains(baseDir, "{profile}") {
-					baseDir = strings.ReplaceAll(baseDir, "{profile}", profile)
-					profileSearchPath = true
-				}
-				files = addExistingFiles(path.Join(s.baseDir, baseDir, fmt.Sprintf("application-%s.", profile)), files)
-				if profileSearchPath {
-					files = addExistingFiles(path.Join(s.baseDir, baseDir, "application."), files)
+				profileSearchPath := strings.Contains(baseDir, "{profile}")
+				for _, searchPath := range s.matchingPaths(baseDir, "application", profile) {
+					files = addExistingFiles(path.Join(searchPath, fmt.Sprintf("application-%s.", profile)), files)
+					if profileSearchPath {
+						files = addExistingFiles(path.Join(searchPath, "application."), files)
+					}
 				}
 			}
 		}
 		for _, baseDir := range searchPaths {
 			if !strings.Contains(baseDir, "{profile}") {
 				for _, app := range apps {
-					baseDir = strings.ReplaceAll(baseDir, "{application}", app)
-					files = addExistingFiles(path.Join(s.baseDir, baseDir, "application."), files)
+					for _, searchPath := range s.matchingPaths(baseDir, app, "") {
+						files = addExistingFiles(path.Join(searchPath, "application."), files)
+					}
 				}
 			}
 		}
