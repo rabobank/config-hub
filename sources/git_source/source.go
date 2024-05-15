@@ -342,6 +342,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 				break
 			}
 			fmt.Println("Error decoding yaml", e)
+			break
 		}
 
 		// JV A bug with the yaml parser zeroes the map when reading an empty document (section), this prevents it
