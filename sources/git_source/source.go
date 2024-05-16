@@ -353,7 +353,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 
 	// properties := make(map[string]interface{})
 	// e := flattenProperties("", object, &properties)
-	return object, nil
+	return object, e
 }
 
 func flattenProperties(prefix string, object interface{}, properties *map[string]interface{}) error {
