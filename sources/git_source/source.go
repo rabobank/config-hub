@@ -339,6 +339,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 		saved := object
 		if e = decoder.Decode(&object); e != nil {
 			if e == io.EOF {
+				e = nil
 				break
 			}
 			fmt.Printf("Error decoding %s: %s", file.Name(), e)
