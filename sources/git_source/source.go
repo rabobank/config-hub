@@ -201,13 +201,13 @@ func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 
 	var searchPaths []string
 	// TODO JV can't remember if this piece of code is still relevant
-	for _, path := range s.searchPaths {
-		if strings.Contains(path, "{application}") {
+	for _, searchPath := range s.searchPaths {
+		if strings.Contains(searchPath, "{application}") {
 			for _, app := range apps {
-				searchPaths = append(searchPaths, strings.ReplaceAll(path, "{application}", app))
+				searchPaths = append(searchPaths, strings.ReplaceAll(searchPath, "{application}", app))
 			}
 		} else {
-			searchPaths = append(searchPaths, path)
+			searchPaths = append(searchPaths, searchPath)
 		}
 	}
 
@@ -341,7 +341,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 			if e == io.EOF {
 				break
 			}
-			fmt.Println("Error decoding yaml", e)
+			fmt.Printf("Error decoding %s: %s", file.Name(), e)
 			break
 		}
 
@@ -449,7 +449,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 
 func readPropertiesFile(file *os.File) (map[string]interface{}, error) {
 	scanner := bufio.NewScanner(file)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	properties := make(map[string]interface{})
 	for scanner.Scan() {
