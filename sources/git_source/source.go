@@ -342,6 +342,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 				break
 			}
 			fmt.Println("Error decoding yaml", e)
+			break
 		}
 
 		// JV A bug with the yaml parser zeroes the map when reading an empty document (section), this prevents it
@@ -352,7 +353,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 
 	// properties := make(map[string]interface{})
 	// e := flattenProperties("", object, &properties)
-	return object, nil
+	return object, e
 }
 
 func flattenProperties(prefix string, object interface{}, properties *map[string]interface{}) error {
