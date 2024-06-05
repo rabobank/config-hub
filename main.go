@@ -31,8 +31,8 @@ func printUsage() int {
 }
 
 func main() {
-	fmt.Printf("config-hub v%s (%s)\n\n", cfg.Version, cfg.Commit)
 	if len(os.Args) == 1 {
+		fmt.Printf("config-hub v%s (%s)\n\n", cfg.Version, cfg.Commit)
 		fmt.Println("Logging level :", log.LevelName(cfg.LogLevel))
 		server.Server()
 	} else if len(os.Args) < 3 || os.Args[1] != "credentials" {
