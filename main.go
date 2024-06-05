@@ -25,6 +25,7 @@ const usage = "config-hub v%s\n\n" +
 	"               specific repositories on the same host.\n"
 
 func printUsage() int {
+	fmt.Printf("config-hub %s (%s)\n\n", cfg.Version, cfg.Commit)
 	name := path.Base(os.Args[0])
 	fmt.Printf(usage, cfg.Version, name, name)
 	return -1
@@ -32,7 +33,7 @@ func printUsage() int {
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Printf("config-hub v%s (%s)\n\n", cfg.Version, cfg.Commit)
+		fmt.Printf("config-hub %s (%s)\n\n", cfg.Version, cfg.Commit)
 		fmt.Println("Logging level :", log.LevelName(cfg.LogLevel))
 		server.Server()
 	} else if len(os.Args) < 3 || os.Args[1] != "credentials" {
