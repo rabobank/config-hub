@@ -15,6 +15,7 @@ import (
 
 var (
 	Version  = "0.0.0"
+	Commit   = "0000000"
 	LogLevel = log.DEBUG
 
 	DebugOutput = os.Getenv("DEBUG_OUTPUT")

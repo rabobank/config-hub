@@ -31,7 +31,7 @@ func printUsage() int {
 }
 
 func main() {
-	fmt.Printf("config-hub v%s\n\n", cfg.Version)
+	fmt.Printf("config-hub v%s (%s)\n\n", cfg.Version, cfg.Commit)
 	if len(os.Args) == 1 {
 		fmt.Println("Logging level :", log.LevelName(cfg.LogLevel))
 		server.Server()
