@@ -164,10 +164,18 @@ func (s *source) findProperties(apps []string, profiles []string, labels []strin
 		return nil, e
 	}
 
-	relevantCredentials := existingCredentials.filterCredentials(apps, ensureDefaultProfile(profiles), labels)
+	relevantCredentials := existingCredentials.filterCredentials(apps, profiles, labels)
+	if len(relevantCredentials) == 0 {
+		l.Debugf("No credhub credentials found for apps: %s, profiles: %v, labels: %s", apps, profiles, labels)
+		result = append(result, &domain.PropertySource{
+			Source:     fmt.Sprintf("credhub-%s-%s-%s", apps[0], profiles[0], labels[0]),
+			Properties: make(map[string]interface{}),
+		})
+	}
+
 	for _, credReference := range relevantCredentials {
 		if credential, e := s.client.GetJsonByName(credReference.name); e != nil {
-			// log it
+			l.Errorf("Failed to retrieve credential %s : %v", credReference.name, e)
 			result = append(result, &domain.PropertySource{
 				Source:     fmt.Sprintf("credhub-%s-%s-%s", credReference.app, credReference.profile, credReference.label),
 				Properties: make(map[string]interface{}),
