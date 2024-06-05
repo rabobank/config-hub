@@ -100,6 +100,7 @@ func findProperties(w we.ResponseWriter, scope we.RequestScope) error {
 			App:      app,
 			Profiles: strings.Split(scope.Var("profiles"), ","),
 			Sources:  properties,
+			Label:    &label,
 		}
 		if e := util.ReplyJson(w, http.StatusOK, response); e != nil {
 			l.Errorf("Error when replying to properties request: %v", e)
