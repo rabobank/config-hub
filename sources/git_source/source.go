@@ -148,6 +148,21 @@ func (s *source) FindProperties(apps []string, profiles []string, requestedLabel
 			l.Error(e)
 		} else {
 			sourcesProperties = append(sourcesProperties, fileProperties)
+
+			// TODO cleanup
+			if v, found := util.Get("spring.config.import", fileProperties.Properties); found {
+				if importedFilename, isType := v.(string); !isType {
+					l.Errorf("Imported spring config file not a string : %v\n", v)
+				} else {
+					for _, file := range s.findFile(apps, profiles, importedFilename) {
+						if fileProperties, e = readFile(file); e != nil {
+							l.Errorf("Unable to read imported file %s : %v\n", importedFilename, e)
+						} else {
+							sourcesProperties = append(sourcesProperties, fileProperties)
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -159,6 +174,14 @@ func addExistingFiles(file string, files []*os.File) []*os.File {
 		if file := openFile(file + ext); file != nil {
 			files = append(files, file)
 		}
+	}
+	return files
+}
+
+func addExistingFile(file string, files []*os.File) []*os.File {
+	l.Infof("Search for file %s", file)
+	if file := openFile(file); file != nil {
+		files = append(files, file)
 	}
 	return files
 }
@@ -257,6 +280,38 @@ func (s *source) findFiles(apps []string, profiles []string) []*os.File {
 				}
 			}
 		}
+	}
+
+	return files
+}
+
+func (s *source) findFile(apps []string, profiles []string, filename string) []*os.File {
+	var searchPaths []string
+	for _, searchPath := range s.searchPaths {
+		if strings.Contains(searchPath, "{application}") {
+			for _, app := range apps {
+				if strings.Contains(searchPath, "{profile}") {
+					for _, profile := range profiles {
+						searchPaths = append(searchPaths, strings.ReplaceAll(strings.ReplaceAll(searchPath, "{application}", app), "{profile}", profile))
+					}
+				} else {
+					searchPaths = append(searchPaths, strings.ReplaceAll(searchPath, "{application}", app))
+				}
+			}
+		} else if strings.Contains(searchPath, "{profile}") {
+			for _, profile := range profiles {
+				searchPaths = append(searchPaths, strings.ReplaceAll(searchPath, "{profile}", profile))
+			}
+		} else {
+			searchPaths = append(searchPaths, searchPath)
+		}
+	}
+
+	l.Info("Searching for file", filename, "for app(s) ", apps, " and profiles ", profiles)
+	files := make([]*os.File, 0)
+	for _, searchPath := range searchPaths {
+		l.Info("Check search path $s", searchPath)
+		files = addExistingFile(path.Join(s.baseDir, searchPath, filename), files)
 	}
 
 	return files
