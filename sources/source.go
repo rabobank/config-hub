@@ -148,6 +148,12 @@ func mergeMap(baseMap map[string]any, mergingMap map[string]any) map[string]any 
 func findProperties(app string, profiles []string, label string) []*domain.PropertySource {
 	var sources []*domain.PropertySource
 	apps := strings.Split(app, ",")
+
+	// clean them up stripping the spaces
+	for i := range apps {
+		apps[i] = strings.TrimSpace(apps[i])
+	}
+
 	for _, source := range propertySources {
 		if foundProperties, e := source.FindProperties(apps, profiles, label); e != nil {
 			l.Errorf("Error when calling source %v: %v", reflect.TypeOf(source).Name(), e)
