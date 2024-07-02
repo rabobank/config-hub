@@ -34,10 +34,10 @@ type Branch struct {
 }
 
 type Repository struct {
-	base  string
-	fetch []string
-	pull  []string
-	lock  sync.Mutex
+	shallow bool
+	base    string
+	pull    []string
+	lock    sync.Mutex
 }
 
 func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
@@ -50,13 +50,14 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 		repoPath = strings.ReplaceAll(gitUrl.Path, " ", "%20")
 	}
 
-	repository := &Repository{base: baseDir}
+	repository := &Repository{
+		shallow: !config.DeepClone,
+		base:    baseDir,
+	}
 
-	if !config.DeepClone {
-		repository.fetch = []string{"fetch", "--depth=1"}
+	if repository.shallow {
 		repository.pull = []string{"pull", "--depth=1"}
 	} else {
-		repository.fetch = []string{"fetch"}
 		repository.pull = []string{"pull"}
 	}
 
@@ -69,6 +70,11 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 	}
 
 	if output, e := repository.exec([]string{"config", "--add", "credential.helper", fmt.Sprintf(CredentialHelperCommand, path.Join(cfg.BaseDir, path.Base(os.Args[0])), repoPath)}); e != nil {
+		l.Error(output)
+		return nil, e
+	}
+
+	if output, e := repository.exec([]string{"config", "--add", "advice.detachedHead", "false"}); e != nil {
 		l.Error(output)
 		return nil, e
 	}
@@ -86,11 +92,18 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 	return repository, nil
 }
 
-func (r *Repository) Fetch() error {
+func (r *Repository) Fetch(label string) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	if output, e := r.exec(r.fetch); e != nil {
+	fetch := []string{"fetch"}
+	if r.shallow {
+		fetch = append(fetch, "--depth=1")
+		if len(label) > 0 {
+			fetch = append(fetch, "origin", label)
+		}
+	}
+	if output, e := r.exec(fetch); e != nil {
 		l.Error(output)
 		return e
 	} else if l.Level() >= log.DEBUG {
@@ -101,7 +114,7 @@ func (r *Repository) Fetch() error {
 }
 
 func (r *Repository) Refresh(label string) error {
-	if e := r.Fetch(); e != nil {
+	if e := r.Fetch(label); e != nil {
 		return e
 	}
 
@@ -126,7 +139,7 @@ func (r *Repository) Refresh(label string) error {
 }
 
 func (r *Repository) Branches(remote bool) ([]Branch, error) {
-	if e := r.Fetch(); e != nil {
+	if e := r.Fetch(""); e != nil {
 		l.Error("Listing Branches failed on fetch:", e)
 	}
 
