@@ -141,6 +141,7 @@ func (r *Repository) Refresh(label string) error {
 func (r *Repository) Branches(remote bool) ([]Branch, error) {
 	if e := r.Fetch(""); e != nil {
 		l.Error("Listing Branches failed on fetch:", e)
+		return nil, e
 	}
 
 	parameters := localBranchParameters
