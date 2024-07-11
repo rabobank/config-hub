@@ -138,14 +138,16 @@ func (r *Repository) Refresh(label string) error {
 	return nil
 }
 
-func (r *Repository) Branches(remote bool) ([]Branch, error) {
-	if e := r.Fetch(""); e != nil {
+func (r *Repository) Branches(remote bool) (branches []Branch, e error) {
+	if e = r.Fetch(""); e != nil {
 		l.Error("Listing Branches failed on fetch:", e)
-		return nil, e
 	}
 
 	parameters := localBranchParameters
 	if remote {
+		if e != nil {
+			return nil, e
+		}
 		l.Debug("Listing remote branches")
 		parameters = remoteBranchParameters
 	} else {
@@ -155,7 +157,6 @@ func (r *Repository) Branches(remote bool) ([]Branch, error) {
 		l.Error(output)
 		return nil, e
 	} else {
-		var branches []Branch
 		scanner := bufio.NewScanner(output)
 		for scanner.Scan() {
 			branch := scanner.Text()
