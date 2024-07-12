@@ -34,6 +34,9 @@ func Setup() error {
 		default:
 			l.Criticalf("Unsupported source type %s\n", sourceCfg.Type())
 		}
+		if propertySources[i] != nil {
+			l.Infof("Source configured : %s", propertySources[i])
+		}
 	}
 
 	return nil

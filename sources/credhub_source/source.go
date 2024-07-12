@@ -112,6 +112,10 @@ type source struct {
 	client credhub.Client
 }
 
+func (s *source) String() string {
+	return fmt.Sprintf("CredhubSource{prefix:%s}", s.prefix)
+}
+
 func (s *source) Name() string {
 	return "credhub"
 }

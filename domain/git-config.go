@@ -18,6 +18,7 @@ type GitConfig struct {
 	Password          *string  `json:"password,omitempty"`
 	PrivateKey        *string  `json:"privateKey,omitempty"`
 	SkipSslValidation bool     `json:"skipSslValidation"`
+	FailOnFetch       bool     `json:"failOnFetch"`
 }
 
 func stringOrNull(value *string) string {
@@ -28,8 +29,8 @@ func stringOrNull(value *string) string {
 }
 
 func (gc *GitConfig) String() string {
-	return fmt.Sprintf("GitConfig{SourceType:%s, Uri:%s, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v}",
-		gc.SourceType, gc.Uri, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation)
+	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v}",
+		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch)
 }
 
 func (gc *GitConfig) Type() string {
@@ -98,8 +99,6 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 	}
 	gc.SearchPaths = append(gc.SearchPaths, "")
 
-	fmt.Println("searchPaths are", gc.SearchPaths)
-
 	if value, found := properties["defaultLabel"]; found {
 		if v, isType := value.(string); !isType {
 			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabele type : %s", v))
@@ -140,8 +139,17 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 		}
 	}
 
+	if value, found := properties["failOnFetch"]; found {
+		if v, isType := value.(bool); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible failOnFetch type : %v", v))
+		} else {
+			gc.FailOnFetch = v
+		}
+	}
+
 	if errors.Count() > 0 {
 		return errors
 	}
+
 	return nil
 }

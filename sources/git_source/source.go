@@ -136,8 +136,14 @@ func (s *source) FindProperties(apps []string, profiles []string, requestedLabel
 				s.defaultLabel = "main"
 			}
 		}
-		if e != nil {
-			l.Errorf("Failed to refresh repository %s : %v", s.repo, e)
+		if UnableToFetchError.IsKindOf(e) {
+			if s.repository.failOnFetch {
+				l.Errorf("Fetching failed and repository setup to fail on fetch: %v", e)
+				return nil, e
+			}
+		} else if e != nil {
+			l.Errorf("Error when refreshing repository: %v", e)
+			return nil, e
 		}
 	}
 

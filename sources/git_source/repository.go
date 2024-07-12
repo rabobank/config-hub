@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
@@ -20,6 +21,9 @@ const (
 	Remote                  = true
 	Local                   = false
 	CredentialHelperCommand = "%s credentials %s"
+
+	UnableToFetchError    = err.ErrorF("Fetching from remote repository has failed: %v")
+	UnableToCheckoutError = err.ErrorF("Unable to checkout reference %v: %v")
 )
 
 var (
@@ -34,10 +38,11 @@ type Branch struct {
 }
 
 type Repository struct {
-	shallow bool
-	base    string
-	pull    []string
-	lock    sync.Mutex
+	shallow     bool
+	failOnFetch bool
+	base        string
+	pull        []string
+	lock        sync.Mutex
 }
 
 func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
@@ -51,8 +56,9 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 	}
 
 	repository := &Repository{
-		shallow: !config.DeepClone,
-		base:    baseDir,
+		shallow:     !config.DeepClone,
+		failOnFetch: config.FailOnFetch,
+		base:        baseDir,
 	}
 
 	if repository.shallow {
@@ -115,7 +121,9 @@ func (r *Repository) Fetch(label string) error {
 
 func (r *Repository) Refresh(label string) error {
 	if e := r.Fetch(label); e != nil {
-		return e
+		if r.failOnFetch {
+			return UnableToFetchError.WithValues(e)
+		}
 	}
 
 	r.lock.Lock()
@@ -123,15 +131,14 @@ func (r *Repository) Refresh(label string) error {
 
 	if output, e := r.exec([]string{"checkout", label}); e != nil {
 		l.Error(output)
-		return e
+		return UnableToCheckoutError.WithValues(label, e)
 	} else if l.Level() >= log.DEBUG {
 		l.Debug(output)
 	}
 
 	if output, e := r.exec(r.pull); e != nil {
-		l.Error(output)
-		return e
-	} else if l.Level() >= log.DEBUG {
+		// the latest commit should have by now been fetched. A pull will fail on a detached head, so...
+		// we can ignore the error but let's print it in debug mode
 		l.Debug(output)
 	}
 
