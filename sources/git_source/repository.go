@@ -111,7 +111,7 @@ func (r *Repository) Fetch(label string) error {
 	}
 	if output, e := r.exec(fetch); e != nil {
 		l.Error(output)
-		return e
+		return err.Error(output.String())
 	} else if l.Level() >= log.DEBUG {
 		l.Debug(output)
 	}
