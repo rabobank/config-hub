@@ -25,6 +25,13 @@ var dashboardTemplate = template.Must(template.New("dashboard").Parse("<!DOCTYPE
 	"                line-height: 1.42857143;\n" +
 	"                color: #333;\n" +
 	"            }\n" +
+	"            .error {\n" +
+	"                background-color: #aa0000;\n" +
+	"                font-size: 11px;\n" +
+	"                color: white;\n" +
+	"                font-weight: bold;\n" +
+	"                padding: 2px;\n" +
+	"            }\n" +
 	"        </style>\n" +
 	"    </head>\n" +
 	"    <body>\n" +
