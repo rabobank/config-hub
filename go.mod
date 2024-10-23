@@ -8,7 +8,7 @@ require (
 	github.com/gomatbase/go-error v1.1.0
 	github.com/gomatbase/go-log v1.1.0
 	github.com/gomatbase/go-we v1.0.0-b8
-	github.com/rabobank/credhub-client v0.0.1
+	github.com/rabobank/credhub-client v0.0.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
