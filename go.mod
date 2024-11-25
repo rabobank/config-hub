@@ -7,7 +7,7 @@ replace google.golang.org/protobuf => google.golang.org/protobuf v1.35.1
 require (
 	github.com/gomatbase/go-error v1.1.0
 	github.com/gomatbase/go-log v1.1.0
-	github.com/gomatbase/go-we v1.0.0-b8
+	github.com/gomatbase/go-we v1.0.0-b9
 	github.com/rabobank/credhub-client v0.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )

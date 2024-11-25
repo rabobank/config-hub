@@ -10,6 +10,8 @@ github.com/gomatbase/go-log v1.1.0 h1:35drL7p28GSWk9Gxp7gXhnsfKELdClZl7oo9bqGSXn
 github.com/gomatbase/go-log v1.1.0/go.mod h1:fBx5uqIjAT5T+9lenRaEgFX8tIcvC9AYewNQ7j0FpMI=
 github.com/gomatbase/go-we v1.0.0-b8 h1:qL3IqC4LAPsBVYfImasy1w+0L9V1BA2baR8wzOYL3+E=
 github.com/gomatbase/go-we v1.0.0-b8/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
+github.com/gomatbase/go-we v1.0.0-b9 h1:cQYW6MTqsY70LTRjuxq52SpUr7irwn9ZQAyH6OKvrHM=
+github.com/gomatbase/go-we v1.0.0-b9/go.mod h1:yiRqQcOEeWv2Nx4N5GVpQ+flCW261uGfO4TwvlsjhTU=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
