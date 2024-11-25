@@ -8,6 +8,11 @@ import (
 	err "github.com/gomatbase/go-error"
 )
 
+const (
+	DefaultFetchCacheTtl = 60
+	MinimumFetchCacheTtl = 60
+)
+
 type GitConfig struct {
 	SourceType        string   `json:"type"`
 	DeepClone         bool     `json:"deepClone"`
@@ -19,6 +24,7 @@ type GitConfig struct {
 	PrivateKey        *string  `json:"privateKey,omitempty"`
 	SkipSslValidation bool     `json:"skipSslValidation"`
 	FailOnFetch       bool     `json:"failOnFetch"`
+	FetchCacheTtl     int      `json:"fetchCacheTtl,omitempty"`
 }
 
 func stringOrNull(value *string) string {
@@ -144,6 +150,16 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 			errors.Add(fmt.Sprintf("reading git source configuration with incompatible failOnFetch type : %v", v))
 		} else {
 			gc.FailOnFetch = v
+		}
+	}
+
+	gc.FetchCacheTtl = DefaultFetchCacheTtl
+	if value, found := properties["fetchCacheTtl"]; found {
+		if v, isType := value.(int); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible fetchCacheTtl type : %v", v))
+		} else if v > MinimumFetchCacheTtl {
+			// JV: ignoring smaller values, but perhaps an error can also be raised
+			gc.FetchCacheTtl = v
 		}
 	}
 
