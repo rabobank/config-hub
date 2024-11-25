@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	err "github.com/gomatbase/go-error"
 	"github.com/gomatbase/go-log"
@@ -40,8 +41,12 @@ type Branch struct {
 type Repository struct {
 	shallow     bool
 	failOnFetch bool
+	fetchTtl    int64
+	lastFetch   int64
 	base        string
 	pull        []string
+	currentRef  string
+	detached    bool
 	lock        sync.Mutex
 }
 
@@ -59,6 +64,7 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 		shallow:     !config.DeepClone,
 		failOnFetch: config.FailOnFetch,
 		base:        baseDir,
+		fetchTtl:    int64(config.FetchCacheTtl),
 	}
 
 	if repository.shallow {
@@ -102,6 +108,10 @@ func (r *Repository) Fetch(label string) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	return r.fetch(label)
+}
+
+func (r *Repository) fetch(label string) error {
 	fetch := []string{"fetch"}
 	if r.shallow {
 		fetch = append(fetch, "--depth=1")
@@ -120,14 +130,24 @@ func (r *Repository) Fetch(label string) error {
 }
 
 func (r *Repository) Refresh(label string) error {
-	if e := r.Fetch(label); e != nil {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if r.currentRef == label {
+		if r.detached {
+			// current head is the requested label and it's detached (commit reference)
+			return nil
+		} else if r.lastFetch+r.fetchTtl > time.Now().Unix() {
+			// still valid fetch
+			return nil
+		}
+		// either the ttl expired or the current commit/branch is not the requested label
+	}
+
+	if e := r.fetch(label); e != nil {
 		if r.failOnFetch {
 			return UnableToFetchError.WithValues(e)
 		}
 	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	if output, e := r.exec([]string{"checkout", label}); e != nil {
 		l.Error(output)
@@ -141,6 +161,9 @@ func (r *Repository) Refresh(label string) error {
 		// we can ignore the error but let's print it in debug mode
 		l.Debug(output)
 	}
+
+	r.currentRef = label
+	r.lastFetch = time.Now().Unix()
 
 	return nil
 }
