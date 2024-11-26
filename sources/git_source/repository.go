@@ -160,6 +160,9 @@ func (r *Repository) Refresh(label string) error {
 		// the latest commit should have by now been fetched. A pull will fail on a detached head, so...
 		// we can ignore the error but let's print it in debug mode
 		l.Debug(output)
+		r.detached = true
+	} else {
+		r.detached = false
 	}
 
 	r.currentRef = label
