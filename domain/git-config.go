@@ -15,7 +15,7 @@ const (
 
 type GitConfig struct {
 	SourceType        string   `json:"type"`
-	DeepClone         bool     `json:"deepClone"`
+	DeepClone         bool     `json:"deepClone,omitempty"`
 	Uri               string   `json:"uri"`
 	DefaultLabel      *string  `json:"defaultLabel,omitempty"`
 	SearchPaths       []string `json:"searchPaths,omitempty"`
@@ -23,7 +23,7 @@ type GitConfig struct {
 	Password          *string  `json:"password,omitempty"`
 	PrivateKey        *string  `json:"privateKey,omitempty"`
 	SkipSslValidation bool     `json:"skipSslValidation"`
-	FailOnFetch       bool     `json:"failOnFetch"`
+	FailOnFetch       bool     `json:"failOnFetch,omitempty"`
 	FetchCacheTtl     int      `json:"fetchCacheTtl,omitempty"`
 }
 
