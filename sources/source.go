@@ -42,6 +42,13 @@ func Setup() error {
 	return nil
 }
 
+func DeleteCache() error {
+	for _, source := range propertySources {
+		source.ClearCache()
+	}
+	return nil // prepare for future error handling
+}
+
 func FindProperties(app string, profiles []string, label string) []*domain.PropertySource {
 	sources := findProperties(app, profiles, label)
 	for i, properties := range sources {

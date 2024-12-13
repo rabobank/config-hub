@@ -112,6 +112,10 @@ type source struct {
 	client credhub.Client
 }
 
+func (s *source) ClearCache() {
+	// do nothing, credhub secrets are not cached at the source
+}
+
 func (s *source) String() string {
 	return fmt.Sprintf("CredhubSource{prefix:%s}", s.prefix)
 }

@@ -45,7 +45,7 @@ func Server() {
 	securityFilter := security.Filter(true).
 		Path("/health", "/info").Anonymous().
 		Path("/credentials").Authorize(security.AuthorizationFunc(localhost)).
-		Path("/secrets", "/secrets/add", "/secrets/delete", "/secrets/list").Authentication(bearerAuthenticationProvider).Authorize(allowedUsers).
+		Path("/secrets", "/secrets/add", "/secrets/delete", "/secrets/list", "/cache").Authentication(bearerAuthenticationProvider).Authorize(allowedUsers).
 		Path("/dashboard").Authentication(ssoAuthenticationProvider).Authorize(allowedUsers).
 		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope("config_hub_" + cfg.ServiceInstanceId + ".read")).
 		Build()
@@ -64,6 +64,9 @@ func Server() {
 	engine.HandleMethod("GET", "/secrets/list", credhub_source.ListSecretsCompatible)
 	engine.HandleMethod("GET", "/secrets", credhub_source.ListSecrets)
 
+	// Cache endpoints
+	engine.HandleMethod("DELETE", "/cache", deleteCache)
+
 	// dashboard
 	engine.HandleMethod("GET", "/dashboard", sources.Dashboard)
 
@@ -80,6 +83,12 @@ func Server() {
 func localhost(_ *security.User, scope we.RequestScope) bool {
 	parts := strings.Split(scope.Request().RemoteAddr, ":")
 	return parts[0] == "127.0.0.1"
+}
+
+func deleteCache(w we.ResponseWriter, _ we.RequestScope) error {
+	l.Debugf("Clearing caches from all supporting sources")
+	w.WriteHeader(http.StatusNoContent)
+	return sources.DeleteCache()
 }
 
 func findProperties(w we.ResponseWriter, scope we.RequestScope) error {

@@ -129,12 +129,18 @@ func (r *Repository) fetch(label string) error {
 	return nil
 }
 
+func (r *Repository) ClearTTL() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.lastFetch = 0
+}
+
 func (r *Repository) Refresh(label string) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if r.currentRef == label {
 		if r.detached {
-			// current head is the requested label and it's detached (commit reference)
+			// current head is the requested label, and it's detached (commit reference)
 			return nil
 		} else if r.lastFetch+r.fetchTtl > time.Now().Unix() {
 			// still valid fetch
