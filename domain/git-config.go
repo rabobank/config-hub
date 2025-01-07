@@ -98,7 +98,7 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 				if s, isType := av.(string); !isType {
 					errors.Add(fmt.Sprintf("reading git source configuration with incompatible searchTypes array value type : %v", av))
 				} else {
-					gc.SearchPaths[i] = s
+					gc.SearchPaths[i] = strings.TrimSpace(s)
 				}
 			}
 		}

@@ -180,6 +180,7 @@ func (s *source) FindProperties(apps []string, profiles []string, requestedLabel
 
 func addExistingFiles(file string, files []*os.File) []*os.File {
 	for _, ext := range []string{"yml", "yaml", "properties"} {
+		l.Tracef("Search for file %s%s", file, ext)
 		if file := openFile(file + ext); file != nil {
 			files = append(files, file)
 		}
@@ -188,7 +189,7 @@ func addExistingFiles(file string, files []*os.File) []*os.File {
 }
 
 func addExistingFile(file string, files []*os.File) []*os.File {
-	l.Infof("Search for file %s", file)
+	l.Tracef("Search for file %s", file)
 	if file := openFile(file); file != nil {
 		files = append(files, file)
 	}
