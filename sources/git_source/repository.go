@@ -141,9 +141,11 @@ func (r *Repository) Refresh(label string) error {
 	if r.currentRef == label {
 		if r.detached {
 			// current head is the requested label, and it's detached (commit reference)
+			l.Debug("Requested refresh for detached head, skipping.")
 			return nil
 		} else if r.lastFetch+r.fetchTtl > time.Now().Unix() {
 			// still valid fetch
+			l.Debug("Requested label's cache hasn't expired, skipping refresh.")
 			return nil
 		}
 		// either the ttl expired or the current commit/branch is not the requested label
@@ -162,9 +164,8 @@ func (r *Repository) Refresh(label string) error {
 		l.Debug(output)
 	}
 
-	if output, e := r.exec(r.pull); e != nil {
-		// the latest commit should have by now been fetched. A pull will fail on a detached head, so...
-		// we can ignore the error but let's print it in debug mode
+	if output, e := r.exec([]string{"symbolic-ref", "HEAD"}); e != nil {
+		// a detached head will fail the symbolic-ref
 		l.Debug(output)
 		r.detached = true
 	} else {
