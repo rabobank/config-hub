@@ -164,10 +164,19 @@ func (r *Repository) Refresh(label string) error {
 		l.Debug(output)
 	}
 
-	if output, e := r.exec([]string{"symbolic-ref", "HEAD"}); e != nil {
-		// a detached head will fail the symbolic-ref
+	if output, e := r.exec(r.pull); e != nil {
+		// the latest commit should have by now been fetched. A pull will fail on a detached head, so...
+		// we can ignore the error but let's print it in debug mode
 		l.Debug(output)
-		r.detached = true
+
+		// let's confirm that it's a detached head
+		if output, e = r.exec([]string{"symbolic-ref", "HEAD"}); e != nil {
+			// a detached head will fail the symbolic-ref
+			l.Debug(output)
+			r.detached = true
+		} else {
+			r.detached = false
+		}
 	} else {
 		r.detached = false
 	}
