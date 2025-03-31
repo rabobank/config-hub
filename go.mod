@@ -1,10 +1,12 @@
 module github.com/rabobank/config-hub
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.2
 
 replace (
-	golang.org/x/net => golang.org/x/net v0.33.0
-	google.golang.org/protobuf => google.golang.org/protobuf v1.36.0
+	golang.org/x/net => golang.org/x/net v0.38.0
+	google.golang.org/protobuf => google.golang.org/protobuf v1.36.6
 )
 
 require (
@@ -16,10 +18,10 @@ require (
 )
 
 require (
-	github.com/cloudfoundry-community/go-uaa v0.3.3 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
+	github.com/cloudfoundry-community/go-uaa v0.3.5 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
-	google.golang.org/protobuf v1.36.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
