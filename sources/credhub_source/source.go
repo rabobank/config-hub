@@ -135,7 +135,7 @@ func (s *source) appendProfilesSecrets(app string, profiles []string, label stri
 			defaultRequested = true
 		}
 		name := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, profile, label)
-		fmt.Println("Getting secrets from", name)
+		l.Debugf("Getting secrets from %s\n", name)
 		var secrets map[string]any
 		var e error
 		if secrets, e = s.client.GetJsonByName(name); e != nil {
@@ -148,7 +148,7 @@ func (s *source) appendProfilesSecrets(app string, profiles []string, label stri
 	}
 	if !defaultRequested {
 		name := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, "default", label)
-		fmt.Println("Getting secrets from", name)
+		l.Debugf("Getting secrets from %s\n", name)
 		if secrets, e := s.client.GetJsonByName(name); e == nil {
 			result = append(result, &domain.PropertySource{
 				Source:     fmt.Sprintf("credhub-%s-default-%s", app, label),
@@ -214,76 +214,6 @@ func (s *source) getExistingCredentials() (*credentialsIndex, error) {
 	}
 }
 
-// func (s *source) filterCredentials(credentials *credentialsIndex, apps []string, profiles []string, labels []string) []string {
-//     if len(*credentials) == 0 {
-//         return nil
-//     }
-//
-//     var matchingApps []map[string]map[string]string
-//     var defaultPresent bool
-//     if apps == nil {
-//         for _, v := range *credentials {
-//             matchingApps = append(matchingApps, v)
-//         }
-//     } else if profiles == nil {
-//         for _, app := range apps {
-//             if matchingProfiles := (*credentials)[app]; matchingProfiles != nil {
-//                 matchingApps = append(matchingApps, matchingProfiles)
-//             }
-//             if app == "application" {
-//                 defaultPresent = true
-//             }
-//         }
-//         if !defaultPresent {
-//             if matchingProfiles := (*credentials)["application"]; matchingProfiles != nil {
-//                 matchingApps = append(matchingApps, matchingProfiles)
-//             }
-//         }
-//     } else if labels == nil {
-//
-//     }
-//
-//     matchingNames := make(map[string]bool)
-//     if apps == nil {
-//         return credentials
-//     } else if profiles == nil {
-//         for _, name := range credentials {
-//         }
-//         matchingNames[fmt.Sprintf("%s%s", s.prefix, "application")] = true
-//         for _, app := range apps {
-//             matchingNames[fmt.Sprintf("%s%s", s.prefix, app)] = true
-//         }
-//     } else if labels == nil {
-//         matchingNames[fmt.Sprintf("%s%s/%s", s.prefix, "application", "default")] = true
-//         for _, app := range apps {
-//             matchingNames[fmt.Sprintf("%s%s/%s", s.prefix, app, "default")] = true
-//             for _, profile := range profiles {
-//                 matchingNames[fmt.Sprintf("%s%s/%s", s.prefix, app, profile)] = true
-//             }
-//         }
-//     } else {
-//         matchingNames[fmt.Sprintf("%s%s/%s/%s", s.prefix, "application", "default", "master")] = true
-//         for _, app := range apps {
-//             matchingNames[fmt.Sprintf("%s%s/%s/%s", s.prefix, app, "default", "master")] = true
-//             for _, profile := range profiles {
-//                 matchingNames[fmt.Sprintf("%s%s/%s/%s", s.prefix, app, profile, "master")] = true
-//                 for _, label := range labels {
-//                     matchingNames[fmt.Sprintf("%s%s/%s/%s", s.prefix, app, profile, label)] = true
-//                 }
-//             }
-//         }
-//     }
-//
-//     var result []string
-//     for _, credential := range credentials {
-//         if matchingNames[credential] {
-//             result = append(result, credential)
-//         }
-//     }
-//
-//     return result
-// }
-
 func (s *source) listSecrets(apps []string, profiles []string, labels []string) (map[string]map[string]map[string][]string, error) {
 	var credentials *credentialsIndex
 	var e error
@@ -339,7 +269,7 @@ func (s *source) addSecrets(apps []string, profiles []string, labels []string, s
 				credentialName := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, profile, label)
 				if existingCredentials.contains(app, profile, label) {
 					if existingCredential, e := s.client.GetJsonByName(credentialName); e != nil {
-						fmt.Println("Unable to read credentials", credentialName)
+						l.Errorf("Unable to read credentials %s\n", credentialName)
 						return e
 					} else {
 						secrets = mergeSecrets(existingCredential, secrets)
@@ -347,7 +277,7 @@ func (s *source) addSecrets(apps []string, profiles []string, labels []string, s
 				}
 
 				if _, e := s.client.SetJsonByName(credentialName, secrets); e != nil {
-					fmt.Println("Failed to write credentials", e)
+					l.Errorf("Failed to write credentials: %v\n", e)
 					return e
 				}
 			}
@@ -376,11 +306,11 @@ func (s *source) deleteSecrets(apps []string, profiles []string, labels []string
 				credentialName := fmt.Sprintf("%s%s/%s/%s/secrets", s.prefix, app, profile, label)
 				if existingCredentials.contains(app, profile, label) {
 					if existingCredential, e := s.client.GetJsonByName(credentialName); e != nil {
-						fmt.Println("Unable to read credentials", credentialName)
+						l.Errorf("Unable to read credentials %s\n", credentialName)
 						return e
 					} else if credentials, deleted := deleteSecrets(existingCredential, secrets); deleted {
 						if _, e := s.client.SetJsonByName(credentialName, credentials); e != nil {
-							fmt.Println("Failed to write credentials", e)
+							l.Errorf("Failed to write credentials %s\n", e)
 							return e
 						}
 					}
@@ -468,17 +398,10 @@ func Source(sourceConfig domain.SourceConfig) (result spi.Source, e error) {
 			s.prefix = s.prefix + "/"
 		}
 
-		if credhubConfig.Client != nil && credhubConfig.Secret != nil {
-			if s.client, e = credhub.New(&credhub.Options{
-				Client: *credhubConfig.Client,
-				Secret: *credhubConfig.Secret,
-			}); e != nil {
-				return
-			}
-		} else {
-			// creating a credhub client with mtls authentication doesn't raise errors
-			s.client, _ = credhub.New(nil)
+		if s.client, e = util.CredhubClient(credhubConfig.Client, credhubConfig.Secret); e != nil {
+			return
 		}
+
 		defaultSource = s
 		return s, nil
 	}

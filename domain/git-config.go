@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	err "github.com/gomatbase/go-error"
@@ -19,12 +21,24 @@ type GitConfig struct {
 	Uri               string   `json:"uri"`
 	DefaultLabel      *string  `json:"defaultLabel,omitempty"`
 	SearchPaths       []string `json:"searchPaths,omitempty"`
-	Username          *string  `json:"username,omitempty"`
-	Password          *string  `json:"password,omitempty"`
-	PrivateKey        *string  `json:"privateKey,omitempty"`
 	SkipSslValidation bool     `json:"skipSslValidation"`
 	FailOnFetch       bool     `json:"failOnFetch,omitempty"`
 	FetchCacheTtl     int      `json:"fetchCacheTtl,omitempty"`
+
+	// Optional parameters for user/password credentials
+	Username *string `json:"username,omitempty"`
+	Password *string `json:"password,omitempty"`
+
+	// Optional parameter for ssh private key
+	PrivateKey *string `json:"privateKey,omitempty"`
+
+	// Optional parameters for SPN based authentication with az app registration and credhub stored credentials
+	AzTenantId               *string `json:"azTenantId,omitempty"`
+	AzClient                 *string `json:"azClient,omitempty"`
+	AzSecret                 *string `json:"azSecret,omitempty"`
+	AzSecretCredhubReference *string `json:"azSecret-credhub-ref,omitempty"`
+	AzSecretCredhubClient    *string `json:"azSecret-credhub-client,omitempty"`
+	AzSecretCredhubSecret    *string `json:"azSecret-credhub-secret,omitempty"`
 }
 
 func stringOrNull(value *string) string {
@@ -75,7 +89,7 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 
 	if value, found := properties["defaultLabel"]; found {
 		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabele type : %v", value))
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabel type : %v", value))
 		} else {
 			gc.DefaultLabel = &v
 		}
@@ -105,14 +119,6 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 	}
 	gc.SearchPaths = append(gc.SearchPaths, "")
 
-	if value, found := properties["defaultLabel"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabele type : %s", v))
-		} else {
-			gc.DefaultLabel = &v
-		}
-	}
-
 	if value, found := properties["username"]; found {
 		if v, isType := value.(string); !isType {
 			errors.Add(fmt.Sprintf("reading git source configuration with incompatible username type : %s", v))
@@ -135,6 +141,61 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 		} else {
 			gc.PrivateKey = &v
 		}
+	}
+
+	if value, found := properties["azTenantId"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azTenantId type : %s", v))
+		} else {
+			gc.AzTenantId = &v
+		}
+	}
+
+	if value, found := properties["azClient"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azClient type : %s", v))
+		} else {
+			gc.AzClient = &v
+		}
+	}
+
+	if value, found := properties["azSecret"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret type : %s", v))
+		} else {
+			gc.AzSecret = &v
+		}
+	}
+
+	if value, found := properties["azSecret-credhub-ref"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-ref type : %s", v))
+		} else {
+			gc.AzSecretCredhubReference = &v
+		}
+	}
+
+	if value, found := properties["azSecret-credhub-client"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-client type : %s", v))
+		} else {
+			gc.AzSecretCredhubClient = &v
+		}
+	}
+
+	if value, found := properties["azSecret-credhub-secret"]; found {
+		if v, isType := value.(string); !isType {
+			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-secret type : %s", v))
+		} else {
+			gc.AzSecretCredhubSecret = &v
+		}
+	}
+
+	json.NewEncoder(os.Stdout).Encode(gc)
+
+	if (gc.AzTenantId != nil || gc.AzClient != nil || gc.AzSecret != nil || gc.AzSecretCredhubReference != nil) &&
+		(gc.AzTenantId == nil || gc.AzClient == nil || (gc.AzSecret == nil && gc.AzSecretCredhubReference == nil)) {
+		errors.Add("Invalid AZ Token configuration. It requires Tenant ID, Client ID and Secret to be defined.")
 	}
 
 	if value, found := properties["skipSslValidation"]; found {
