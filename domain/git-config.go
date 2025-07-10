@@ -1,10 +1,8 @@
 package domain
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
 	err "github.com/gomatbase/go-error"
@@ -25,20 +23,30 @@ type GitConfig struct {
 	FailOnFetch       bool     `json:"failOnFetch,omitempty"`
 	FetchCacheTtl     int      `json:"fetchCacheTtl,omitempty"`
 
-	// Optional parameters for user/password credentials
+	// Optional parameters for user/password credentials. Also used for az Mi Wif credentials
 	Username *string `json:"username,omitempty"`
 	Password *string `json:"password,omitempty"`
 
 	// Optional parameter for ssh private key
 	PrivateKey *string `json:"privateKey,omitempty"`
 
-	// Optional parameters for SPN based authentication with az app registration and credhub stored credentials
-	AzTenantId               *string `json:"azTenantId,omitempty"`
+	// Optional parameters for azure based authentication with az app registration and credhub stored credentials
+	AzTenantId *string `json:"azTenantId,omitempty"`
+
+	// Spn based credentials az app registration and credhub stored credentials
+	AzSpn                    bool    `json:"-"`
 	AzClient                 *string `json:"azClient,omitempty"`
 	AzSecret                 *string `json:"azSecret,omitempty"`
 	AzSecretCredhubReference *string `json:"azSecret-credhub-ref,omitempty"`
 	AzSecretCredhubClient    *string `json:"azSecret-credhub-client,omitempty"`
 	AzSecretCredhubSecret    *string `json:"azSecret-credhub-secret,omitempty"`
+
+	// MI based credentials
+	AzMi          bool    `json:"-"`
+	AzMiName      *string `json:"azMiName,omitempty"`
+	AzMiWifIssuer *string `json:"azMiWifIssuer,omitempty"`
+	AzMiWifClient *string `json:"azMiWifClient,omitempty"`
+	AzMiWifSecret *string `json:"azMiWifSecret,omitempty"`
 }
 
 func stringOrNull(value *string) string {
@@ -49,8 +57,8 @@ func stringOrNull(value *string) string {
 }
 
 func (gc *GitConfig) String() string {
-	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v}",
-		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch)
+	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v, AzMiName: %s}",
+		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch, gc.AzMiName)
 }
 
 func (gc *GitConfig) Type() string {
@@ -191,11 +199,29 @@ func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
 		}
 	}
 
-	json.NewEncoder(os.Stdout).Encode(gc)
+	if gc.AzTenantId != nil {
 
-	if (gc.AzTenantId != nil || gc.AzClient != nil || gc.AzSecret != nil || gc.AzSecretCredhubReference != nil) &&
-		(gc.AzTenantId == nil || gc.AzClient == nil || (gc.AzSecret == nil && gc.AzSecretCredhubReference == nil)) {
-		errors.Add("Invalid AZ Token configuration. It requires Tenant ID, Client ID and Secret to be defined.")
+		if gc.AzClient != nil || gc.AzSecret != nil || gc.AzSecretCredhubReference != nil {
+			if gc.AzClient == nil || gc.AzSecret == nil && gc.AzSecretCredhubReference == nil {
+				errors.Add("Invalid AZ SPN configuration. It requires Tenant ID, Client ID and Secret to be defined.")
+			} else {
+				gc.AzSpn = true
+			}
+		}
+
+		if gc.AzMiName != nil || gc.AzMiWifIssuer != nil {
+			if gc.AzMiName == nil || gc.AzMiWifIssuer == nil || gc.Username == nil || gc.Password == nil {
+				errors.Add("Invalid AZ MI configuration. It requires Tenant ID, Az MI name and WIF issuer credentials (username/password).")
+			} else {
+				gc.AzMi = true
+			}
+		}
+
+		if gc.AzSpn && gc.AzMi {
+			errors.Add("Configuring both AZ SPN and AZ MI is not supported")
+		} else if !gc.AzMi && !gc.AzSpn {
+			errors.Add("Az Tenant ID provided and neither a valid MI nor SPN configuration was provided")
+		}
 	}
 
 	if value, found := properties["skipSslValidation"]; found {

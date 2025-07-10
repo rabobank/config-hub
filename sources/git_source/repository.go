@@ -33,6 +33,7 @@ const (
 	UsernamePasswordAuthentication
 	PrivateKeyAuthentication
 	AzSpnAuthentication
+	AzMiWifAuthentication
 )
 
 var (
@@ -58,6 +59,7 @@ type Repository struct {
 
 	authenticationMethod int
 	spnCredentials       *spnCredentials
+	miWifCredentials     *miWifCredentials
 
 	lock sync.Mutex
 }
@@ -95,7 +97,7 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 
 	// at this stage it's expected that we get a validated git config, depending on having a username, private key or
 	// azClient defined, we'll configure username/password, ssh private key or az SPN authentication methods
-	if config.Username != nil {
+	if config.Username != nil && !config.AzMi {
 		l.Debugf("Repository %s configured with username/password authentication", config.Uri)
 		if output, e := repository.exec([]string{"config", "--add", "credential.helper", fmt.Sprintf(CredentialHelperCommand, path.Join(cfg.BaseDir, path.Base(os.Args[0])), repoPath)}); e != nil {
 			l.Error(output)
@@ -107,7 +109,15 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 		l.Errorf("Repository %s configured with private key but currently not supported", config.Uri)
 		repository.authenticationMethod = PrivateKeyAuthentication
 		return nil, err.Error("ssh private keys not supported")
-	} else if config.AzClient != nil {
+	} else if config.AzMi {
+		l.Debugf("Repository %s configured with az mi wif for mi %s of tenant %s", config.Uri, *config.AzMiName, *config.AzTenantId)
+		repository.authenticationMethod = AzMiWifAuthentication
+		var e error
+		if repository.miWifCredentials, e = newMiWifCredentials(*config.AzTenantId, *config.AzMiName, *config.AzMiWifIssuer, *config.AzMiWifClient, *config.AzMiWifSecret, *config.Username, *config.Password); e != nil {
+			l.Error(e)
+			return nil, e
+		}
+	} else if config.AzSpn {
 		l.Debugf("Repository %s configured with az spn authentication for client %s of tenant %s", config.Uri, *config.AzClient, *config.AzTenantId)
 		repository.authenticationMethod = AzSpnAuthentication
 		var e error
@@ -262,16 +272,26 @@ func (r *Repository) Exec(parameters ...string) (*bytes.Buffer, error) {
 
 func (r *Repository) exec(parameters []string) (*bytes.Buffer, error) {
 	var env []string
-	if r.authenticationMethod == AzSpnAuthentication {
+
+	switch r.authenticationMethod {
+	case AzSpnAuthentication:
 		if token, e := r.spnCredentials.token(); e != nil {
 			return nil, e
 		} else {
 			env = append(os.Environ(), "SPN_TOKEN=Authorization: Bearer "+token)
 		}
 		parameters = append([]string{"--config-env=http.extraHeader=SPN_TOKEN"}, parameters...)
-	} else {
+	case AzMiWifAuthentication:
+		if token, e := r.miWifCredentials.token(); e != nil {
+			return nil, e
+		} else {
+			env = append(os.Environ(), "MI_WIF_TOKEN=Authorization: Bearer "+token)
+		}
+		parameters = append([]string{"--config-env=http.extraHeader=MI_WIF_TOKEN"}, parameters...)
+	default:
 		env = os.Environ()
 	}
+
 	cmd := exec.Command("git", parameters...)
 	cmd.Dir = r.base
 	cmd.Env = env
