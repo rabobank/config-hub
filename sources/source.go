@@ -13,12 +13,6 @@ import (
 	"github.com/rabobank/config-hub/sources/spi"
 )
 
-// Supported source types
-const (
-	Git     = "git"
-	Credhub = "credhub"
-)
-
 var (
 	l, _            = log.GetWithOptions("SRC", log.Standard().WithFailingCriticals().WithStartingLevel(cfg.LogLevel))
 	propertySources []spi.Source
@@ -29,11 +23,11 @@ func Setup() error {
 	propertySources = make([]spi.Source, len(cfg.Sources))
 	for i, sourceCfg := range cfg.Sources {
 		switch sourceCfg.Type() {
-		case Git:
+		case domain.GitSourceType:
 			if propertySources[i], e = git_source.Source(sourceCfg, i); e != nil {
 				l.Critical(e)
 			}
-		case Credhub:
+		case domain.CredhubSourceType:
 			if propertySources[i], e = credhub_source.Source(sourceCfg); e != nil {
 				l.Critical(e)
 			}
