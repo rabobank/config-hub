@@ -11,7 +11,7 @@ replace (
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.11.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/gomatbase/csn v1.0.1
 	github.com/gomatbase/go-log v1.1.0
