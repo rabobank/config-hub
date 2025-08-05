@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gomatbase/csn"
-	"github.com/rabobank/config-hub/util"
 )
 
 const (
@@ -59,7 +58,7 @@ func stringOrNull(value *string) string {
 
 func (gc *GitConfig) String() string {
 	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v, AzMiId: %s}",
-		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch, util.EmptyIfNil(gc.AzMiId))
+		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch, stringOrNull(gc.AzMiId))
 }
 
 func (gc *GitConfig) Type() string {
