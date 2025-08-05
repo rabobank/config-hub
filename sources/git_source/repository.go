@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
@@ -23,8 +23,8 @@ const (
 	Local                   = false
 	CredentialHelperCommand = "%s credentials %s"
 
-	UnableToFetchError    = err.ErrorF("Fetching from remote repository has failed: %v")
-	UnableToCheckoutError = err.ErrorF("Unable to checkout reference %v: %v")
+	UnableToFetchError    = csn.ErrorF("Fetching from remote repository has failed: %v")
+	UnableToCheckoutError = csn.ErrorF("Unable to checkout reference %v: %v")
 )
 
 // Authentication methods
@@ -108,12 +108,12 @@ func Git(config *domain.GitConfig, baseDir string) (*Repository, error) {
 		// TODO setup ssh agent to handle the private key
 		l.Errorf("Repository %s configured with private key but currently not supported", config.Uri)
 		repository.authenticationMethod = PrivateKeyAuthentication
-		return nil, err.Error("ssh private keys not supported")
+		return nil, csn.Error("ssh private keys not supported")
 	} else if config.AzMi {
-		l.Debugf("Repository %s configured with az mi wif for mi %s of tenant %s", config.Uri, *config.AzMiName, *config.AzTenantId)
+		l.Debugf("Repository %s configured with az mi wif for mi %s of tenant %s", config.Uri, *config.AzMiId, *config.AzTenantId)
 		repository.authenticationMethod = AzMiWifAuthentication
 		var e error
-		if repository.miWifCredentials, e = newMiWifCredentials(*config.AzTenantId, *config.AzMiName, *config.AzMiWifIssuer, *config.AzMiWifClient, *config.AzMiWifSecret, *config.Username, *config.Password); e != nil {
+		if repository.miWifCredentials, e = newMiWifCredentials(*config.AzTenantId, *config.AzMiId, *config.AzMiWifIssuer, *config.AzMiWifClient, *config.AzMiWifSecret, *config.Username, *config.Password); e != nil {
 			l.Error(e)
 			return nil, e
 		}
@@ -166,7 +166,7 @@ func (r *Repository) fetch(label string) error {
 	}
 	if output, e := r.exec(fetch); e != nil {
 		l.Error(output)
-		return err.Error(output.String())
+		return csn.Error(output.String())
 	} else if l.Level() >= log.DEBUG {
 		l.Debug(output)
 	}

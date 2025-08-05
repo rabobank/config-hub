@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	InvalidConfigurationObjectError = err.Error("expected a credhub configuration object")
-	OnlyOneCredhubSourceError       = err.Error("only one credhub source is allowed")
+	InvalidConfigurationObjectError = csn.Error("expected a credhub configuration object")
+	OnlyOneCredhubSourceError       = csn.Error("only one credhub source is allowed")
 )
 
 var l, _ = log.GetWithOptions("CREDHUB_SOURCE", log.Standard().WithFailingCriticals().WithLogPrefix(log.Name, log.LogLevel, log.Separator).WithStartingLevel(cfg.LogLevel))

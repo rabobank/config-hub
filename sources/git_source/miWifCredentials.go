@@ -27,7 +27,6 @@ func (mwc *miWifCredentials) getFederatedToken(_ context.Context) (string, error
 		fmt.Println("Error getting token from uaa", e)
 		return "", e
 	} else {
-		fmt.Println("Using token from uaa", t.AccessToken)
 		return t.AccessToken, nil
 	}
 }
@@ -48,6 +47,7 @@ func (mwc *miWifCredentials) token() (string, error) {
 	} else {
 		mwc.cachedToken = token
 	}
+
 	return mwc.cachedToken.Token, nil
 }
 

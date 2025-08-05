@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 )
 
 func flattenProperties(prefix string, object interface{}, properties *map[string]interface{}) error {
 
-	errors := err.Errors()
+	errors := csn.Errors()
 
 	if object == nil {
 		object = ""
@@ -29,18 +29,18 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 		if m, isType := object.(map[string]interface{}); isType {
 			for key, value := range m {
 				if e := flattenProperties(prefix+"."+key, value, properties); e != nil {
-					errors.AddError(e)
+					errors.Add(e)
 				}
 			}
 		} else {
 			for key, value := range object.(map[any]any) {
 				if reflect.TypeOf(key).Kind() == reflect.Int {
 					if e := flattenProperties(fmt.Sprintf("%s[%v]", prefix, key), value, properties); e != nil {
-						errors.AddError(e)
+						errors.Add(e)
 					}
 				} else {
 					if e := flattenProperties(fmt.Sprintf("%s.%v", prefix, key), value, properties); e != nil {
-						errors.AddError(e)
+						errors.Add(e)
 					}
 				}
 			}
@@ -56,7 +56,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 		} else {
 			for i, value := range object.([]interface{}) {
 				if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
-					errors.AddError(e)
+					errors.Add(e)
 				}
 			}
 		}
@@ -71,7 +71,7 @@ func flattenProperties(prefix string, object interface{}, properties *map[string
 		} else {
 			for i, value := range object.([]interface{}) {
 				if e := flattenProperties(prefix+"["+strconv.Itoa(i)+"]", value, properties); e != nil {
-					errors.AddError(e)
+					errors.Add(e)
 				}
 			}
 		}

@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 )
 
 const (
@@ -43,7 +43,7 @@ type GitConfig struct {
 
 	// MI based credentials
 	AzMi          bool    `json:"-"`
-	AzMiName      *string `json:"azMiName,omitempty"`
+	AzMiId        *string `json:"azMiId,omitempty"`
 	AzMiWifIssuer *string `json:"azMiWifIssuer,omitempty"`
 	AzMiWifClient *string `json:"azMiWifClient,omitempty"`
 	AzMiWifSecret *string `json:"azMiWifSecret,omitempty"`
@@ -57,202 +57,100 @@ func stringOrNull(value *string) string {
 }
 
 func (gc *GitConfig) String() string {
-	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v, AzMiName: %s}",
-		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch, gc.AzMiName)
+	return fmt.Sprintf("GitConfig{Uri:%s, DeepClone: %v, DefaultLabel:%s, SearchPaths:%s, Username:%s, Password:%v, PrivateKey:%v, SkipSslValidation:%v, FailOnFetch: %v, AzMiId: %s}",
+		gc.Uri, gc.DeepClone, stringOrNull(gc.DefaultLabel), gc.SearchPaths, stringOrNull(gc.Username), gc.Password != nil && len(*gc.Password) != 0, gc.PrivateKey != nil && len(*gc.PrivateKey) != 0, gc.SkipSslValidation, gc.FailOnFetch, gc.AzMiId)
 }
 
 func (gc *GitConfig) Type() string {
 	return gc.SourceType
 }
 
-func (gc *GitConfig) FromMap(properties map[string]interface{}) error {
+func (gc *GitConfig) FromMap(properties map[string]any) error {
 	if properties == nil {
 		return nil
 	}
 
-	errors := err.Errors()
-	if value, found := properties["type"]; !found {
-		errors.Add("reading git source configuration from source without type")
-	} else if v, isType := value.(string); !isType || v != "git" {
-		errors.Add(fmt.Sprintf("reading git source configuration from incompatible source type : %v", value))
-	} else {
-		gc.SourceType = v
+	errors := csn.Errors()
+	errors.Add(extract(Mandatory, properties, "type", &gc.SourceType))
+	if gc.SourceType != "git" {
+		errors.AddErrorMessage(fmt.Sprintf("reading git source configuration from incompatible source type : %s", gc.SourceType))
 	}
 
-	if value, found := properties["uri"]; !found {
-		errors.Add("reading git source configuration from source without a uri")
-	} else if v, isType := value.(string); !isType {
-		errors.Add(fmt.Sprintf("reading git source configuration with incompatible uri type : %v", value))
-	} else if uri, e := url.Parse(v); e != nil {
-		if !strings.HasPrefix(v, "git@") {
-			errors.Add(fmt.Sprintf("reading git source configuration with invalid uri : %v", value))
-		} else {
-			gc.Uri = v
+	errors.Add(extract(Mandatory, properties, "uri", &gc.Uri))
+	if uri, e := url.Parse(gc.Uri); e != nil {
+		if !strings.HasPrefix(gc.Uri, "git@") {
+			errors.AddErrorMessage(fmt.Sprintf("reading git source configuration with invalid uri : %v", gc.Uri))
 		}
 	} else if uri.Scheme != "http" && uri.Scheme != "https" {
-		errors.Add(fmt.Sprintf("reading git source configuration with incompatible uri scheme : %s", uri.Scheme))
-	} else {
-		gc.Uri = v
+		errors.AddErrorMessage(fmt.Sprintf("reading git source configuration with incompatible uri scheme : %s", uri.Scheme))
 	}
 
-	if value, found := properties["defaultLabel"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible defaultLabel type : %v", value))
-		} else {
-			gc.DefaultLabel = &v
-		}
-	}
+	errors.Add(extractPtr(Optional, properties, "defaultLabel", &gc.DefaultLabel))
+	errors.Add(extract(Optional, properties, "deepClone", &gc.DeepClone))
 
-	if value, found := properties["deepClone"]; found {
-		if v, isType := value.(bool); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible deepClone type : %v", value))
+	var searchPaths []any
+	errors.Add(extract(Optional, properties, "searchPaths", &searchPaths))
+	gc.SearchPaths = make([]string, len(searchPaths))
+	for i, v := range searchPaths {
+		if s, isType := v.(string); !isType {
+			errors.AddErrorMessage(fmt.Sprintf("reading git source configuration with incompatible searchTypes array value type : %v", v))
 		} else {
-			gc.DeepClone = v
-		}
-	}
-
-	if value, found := properties["searchPaths"]; found {
-		if v, isType := value.([]interface{}); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible searchTypes type : %v", value))
-		} else {
-			gc.SearchPaths = make([]string, len(v))
-			for i, av := range v {
-				if s, isType := av.(string); !isType {
-					errors.Add(fmt.Sprintf("reading git source configuration with incompatible searchTypes array value type : %v", av))
-				} else {
-					gc.SearchPaths[i] = strings.TrimSpace(s)
-				}
-			}
+			gc.SearchPaths[i] = strings.TrimSpace(s)
 		}
 	}
 	gc.SearchPaths = append(gc.SearchPaths, "")
 
-	if value, found := properties["username"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible username type : %s", v))
-		} else {
-			gc.Username = &v
-		}
+	errors.Add(extractPtr(Optional, properties, "username", &gc.Username))
+	errors.Add(extractPtr(Optional, properties, "password", &gc.Password))
+	errors.Add(extractPtr(Optional, properties, "privateKey", &gc.PrivateKey))
+	errors.Add(extract(Optional, properties, "skipSslValidation", &gc.SkipSslValidation))
+	errors.Add(extract(Optional, properties, "failOnFetch", &gc.FailOnFetch))
+
+	errors.Add(extract(Optional, properties, "fetchCacheTtl", &gc.FetchCacheTtl))
+	if gc.FetchCacheTtl < MinimumFetchCacheTtl {
+		// JV: ignoring smaller values, but perhaps an error can also be raised
+		gc.FetchCacheTtl = DefaultFetchCacheTtl
 	}
 
-	if value, found := properties["password"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add("reading git source configuration with incompatible password type")
-		} else {
-			gc.Password = &v
-		}
-	}
+	// extract az based credentials, if present
+	errors.Add(extractPtr(Optional, properties, "azTenantId", &gc.AzTenantId))
+	// Az SPN based credentials potentially with a credhub service instance holding the SPN secret
+	errors.Add(extractPtr(Optional, properties, "azClient", &gc.AzClient))
+	errors.Add(extractPtr(Optional, properties, "azSecret", &gc.AzSecret))
+	errors.Add(extractPtr(Optional, properties, "azSecret-credhub-ref", &gc.AzSecretCredhubReference))
+	errors.Add(extractPtr(Optional, properties, "azSecret-credhub-client", &gc.AzSecretCredhubClient))
+	errors.Add(extractPtr(Optional, properties, "azSecret-credhub-secret", &gc.AzSecretCredhubSecret))
+	// Az MI WIF based credentials (username and password would in this case have the WIF credentials
+	errors.Add(extractPtr(Optional, properties, "azMiId", &gc.AzMiId))
+	errors.Add(extractPtr(Optional, properties, "azMiWifIssuer", &gc.AzMiWifIssuer))
+	errors.Add(extractPtr(Optional, properties, "azMiWifClient", &gc.AzMiWifClient))
+	errors.Add(extractPtr(Optional, properties, "azMiWifSecret", &gc.AzMiWifSecret))
 
-	if value, found := properties["privateKey"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible privateKey type : %s", v))
-		} else {
-			gc.PrivateKey = &v
-		}
-	}
-
-	if value, found := properties["azTenantId"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azTenantId type : %s", v))
-		} else {
-			gc.AzTenantId = &v
-		}
-	}
-
-	if value, found := properties["azClient"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azClient type : %s", v))
-		} else {
-			gc.AzClient = &v
-		}
-	}
-
-	if value, found := properties["azSecret"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret type : %s", v))
-		} else {
-			gc.AzSecret = &v
-		}
-	}
-
-	if value, found := properties["azSecret-credhub-ref"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-ref type : %s", v))
-		} else {
-			gc.AzSecretCredhubReference = &v
-		}
-	}
-
-	if value, found := properties["azSecret-credhub-client"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-client type : %s", v))
-		} else {
-			gc.AzSecretCredhubClient = &v
-		}
-	}
-
-	if value, found := properties["azSecret-credhub-secret"]; found {
-		if v, isType := value.(string); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible azSecret-credhub-secret type : %s", v))
-		} else {
-			gc.AzSecretCredhubSecret = &v
-		}
-	}
-
+	// if Tenant id is given check that either SPN or MI wif creadentials are fully given
 	if gc.AzTenantId != nil {
 
 		if gc.AzClient != nil || gc.AzSecret != nil || gc.AzSecretCredhubReference != nil {
 			if gc.AzClient == nil || gc.AzSecret == nil && gc.AzSecretCredhubReference == nil {
-				errors.Add("Invalid AZ SPN configuration. It requires Tenant ID, Client ID and Secret to be defined.")
+				errors.AddErrorMessage("Invalid AZ SPN configuration. It requires Tenant ID, Client ID and Secret to be defined.")
 			} else {
 				gc.AzSpn = true
 			}
 		}
 
-		if gc.AzMiName != nil || gc.AzMiWifIssuer != nil {
-			if gc.AzMiName == nil || gc.AzMiWifIssuer == nil || gc.Username == nil || gc.Password == nil {
-				errors.Add("Invalid AZ MI configuration. It requires Tenant ID, Az MI name and WIF issuer credentials (username/password).")
+		if gc.AzMiId != nil || gc.AzMiWifIssuer != nil {
+			if gc.AzMiId == nil || gc.AzMiWifIssuer == nil || gc.Username == nil || gc.Password == nil {
+				errors.AddErrorMessage("Invalid AZ MI configuration. It requires Tenant ID, Az MI name and WIF issuer credentials (username/password).")
 			} else {
 				gc.AzMi = true
 			}
 		}
 
 		if gc.AzSpn && gc.AzMi {
-			errors.Add("Configuring both AZ SPN and AZ MI is not supported")
+			errors.AddErrorMessage("Configuring both AZ SPN and AZ MI is not supported")
 		} else if !gc.AzMi && !gc.AzSpn {
-			errors.Add("Az Tenant ID provided and neither a valid MI nor SPN configuration was provided")
+			errors.AddErrorMessage("Az Tenant ID provided and neither a valid MI nor SPN configuration was provided")
 		}
 	}
 
-	if value, found := properties["skipSslValidation"]; found {
-		if v, isType := value.(bool); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible skipSslValidation type : %v", v))
-		} else {
-			gc.SkipSslValidation = v
-		}
-	}
-
-	if value, found := properties["failOnFetch"]; found {
-		if v, isType := value.(bool); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible failOnFetch type : %v", v))
-		} else {
-			gc.FailOnFetch = v
-		}
-	}
-
-	gc.FetchCacheTtl = DefaultFetchCacheTtl
-	if value, found := properties["fetchCacheTtl"]; found {
-		if v, isType := value.(int); !isType {
-			errors.Add(fmt.Sprintf("reading git source configuration with incompatible fetchCacheTtl type : %v", v))
-		} else if v > MinimumFetchCacheTtl {
-			// JV: ignoring smaller values, but perhaps an error can also be raised
-			gc.FetchCacheTtl = v
-		}
-	}
-
-	if errors.Count() > 0 {
-		return errors
-	}
-
-	return nil
+	return errors.NilIfEmpty()
 }

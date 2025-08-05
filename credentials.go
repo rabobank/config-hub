@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/config-hub/util"
 )
 
 const (
-	UnknownActionError          = err.ErrorF("Unknown Action: $s")
-	ExpectedHosAndProtocolError = err.Error("Expected both host and protocol")
+	UnknownActionError          = csn.ErrorF("Unknown Action: $s")
+	ExpectedHosAndProtocolError = csn.Error("Expected both host and protocol")
 )
 
 func readProperties() map[string]string {

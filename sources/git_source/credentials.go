@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/util"
 	"github.com/rabobank/config-hub/domain"
@@ -34,7 +34,7 @@ func ServeCredentials(w we.ResponseWriter, r we.RequestScope) error {
 		return util.ReplyJson(w, http.StatusOK, response)
 	}
 
-	return err.Error("Not Found")
+	return csn.Error("Not Found")
 }
 
 func ite[T any](value *T, alternative T) T {

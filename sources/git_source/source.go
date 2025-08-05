@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/cfg"
 	"github.com/rabobank/config-hub/domain"
@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	InvalidConfigurationObjectError = err.Error("expected GitConfig configuration object")
+	InvalidConfigurationObjectError = csn.Error("expected GitConfig configuration object")
 )
 
 var l, _ = log.GetWithOptions("GIT_SOURCE", log.Standard().WithLogPrefix(log.Name, log.LogLevel, log.Separator).WithStartingLevel(cfg.LogLevel))
@@ -424,7 +424,7 @@ func readYamlFile(file *os.File) (map[string]interface{}, error) {
 
 // func flattenProperties(prefix string, object interface{}, properties *map[string]interface{}) error {
 //
-// 	errors := err.Errors()
+// 	errors := csn.Errors()
 //
 // 	if object == nil {
 // 		object = ""

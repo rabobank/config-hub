@@ -7,7 +7,7 @@ import (
 	"path"
 	"path/filepath"
 
-	err "github.com/gomatbase/go-error"
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-log"
 	"github.com/rabobank/config-hub/domain"
 	"github.com/rabobank/credhub-client"
@@ -73,7 +73,7 @@ func Println(items ...any) {
 
 func FinishServerConfiguration() error {
 
-	errors := err.Errors()
+	errors := csn.Errors()
 
 	if port, found := os.LookupEnv("PORT"); found {
 		Port = port
@@ -82,53 +82,49 @@ func FinishServerConfiguration() error {
 	var e error
 	BaseDir, e = filepath.Abs(path.Dir(os.Args[0]))
 	if e != nil {
-		errors.Add(fmt.Sprintf("Unable to assess base dir : %v", e))
+		errors.AddErrorMessage(fmt.Sprintf("Unable to assess base dir : %v", e))
 	}
 
 	if vcap, found := os.LookupEnv("VCAP_APPLICATION"); found {
 		// running inside cf, get the cf url from the environment
 		cfApplication := &CfApplication{}
 		if e = json.Unmarshal([]byte(vcap), cfApplication); e != nil {
-			errors.Add(fmt.Sprintf("Unable to parse VCAP_APPLICATION : %v", e))
+			errors.AddErrorMessage(fmt.Sprintf("Unable to parse VCAP_APPLICATION : %v", e))
 		} else {
 			CfUrl = cfApplication.CfApi
 		}
 	} else if CfUrl, found = os.LookupEnv("CF_URL"); !found {
-		errors.Add("No CF_URL provided")
+		errors.AddErrorMessage("No CF_URL provided")
 	}
 
 	if credhubRef, found := os.LookupEnv("CREDHUB-REF"); found {
 		credhubClient, _ := credhub.New(nil)
 		if credentials, e := credhubClient.GetJsonByName(credhubRef); e != nil {
-			errors.Add(fmt.Sprintf("Unable to retrieve credhub credentials from %s : %v", credhubRef, e))
+			errors.AddErrorMessage(fmt.Sprintf("Unable to retrieve credhub credentials from %s : %v", credhubRef, e))
 		} else {
 			var isType bool
 			if Client, isType = credentials["uaa_client"].(string); !isType {
-				errors.Add("uaa_client is not a string")
+				errors.AddErrorMessage("uaa_client is not a string")
 			}
 			if Secret, isType = credentials["uaa_secret"].(string); !isType {
-				errors.Add("uaa_secret is not a string")
+				errors.AddErrorMessage("uaa_secret is not a string")
 			}
 			var sources string
 			if sources, isType = credentials["sources"].(string); !isType {
-				errors.Add("sources is not a string")
+				errors.AddErrorMessage("sources is not a string")
 			} else if Sources, e = jsonToSources(sources); e != nil {
-				errors.AddError(e)
+				errors.Add(e)
 			}
 		}
 	} else if sources, found := os.LookupEnv("CH_SOURCES"); found {
 		if Sources, e = jsonToSources(sources); e != nil {
-			errors.AddError(e)
+			errors.Add(e)
 		}
 	} else {
-		errors.Add("No sources provided")
+		errors.AddErrorMessage("No sources provided")
 	}
 
-	if errors.Count() == 0 {
-		errors = nil
-	}
-
-	return errors
+	return errors.NilIfEmpty()
 }
 
 func jsonToSources(sources string) ([]domain.SourceConfig, error) {
@@ -138,7 +134,7 @@ func jsonToSources(sources string) ([]domain.SourceConfig, error) {
 	}
 
 	sourcesArray := make([]domain.SourceConfig, len(propertiesArray))
-	errors := err.Errors()
+	errors := csn.Errors()
 
 	for i, properties := range propertiesArray {
 		if sourceType, found := properties["type"]; found {
@@ -146,30 +142,26 @@ func jsonToSources(sources string) ([]domain.SourceConfig, error) {
 			case "credhub":
 				credhubConfig := &domain.CredhubConfig{}
 				if e := credhubConfig.FromMap(properties); e != nil {
-					errors.AddError(e)
+					errors.Add(e)
 				} else {
 					sourcesArray[i] = credhubConfig
 				}
 			case "git":
 				gitConfig := &domain.GitConfig{}
 				if e := gitConfig.FromMap(properties); e != nil {
-					errors.AddError(e)
+					errors.Add(e)
 				} else {
 					sourcesArray[i] = gitConfig
 				}
 			}
 		} else {
-			errors.Add(fmt.Sprintf("source without source type %v", properties))
+			errors.AddErrorMessage(fmt.Sprintf("source without source type %v", properties))
 		}
 	}
 
 	fmt.Println("sources :", sourcesArray)
 
-	if errors.Count() == 0 {
-		errors = nil
-	}
-
-	return sourcesArray, errors
+	return sourcesArray, errors.NilIfEmpty()
 }
 
 func FinishCredentialsConfiguration() {
