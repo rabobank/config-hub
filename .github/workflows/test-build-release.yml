@@ -11,7 +11,7 @@ jobs:
     name: Test all components
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
@@ -23,7 +23,7 @@ jobs:
     needs: test-job
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Go version
         uses: actions/setup-go@v5
         with:
@@ -51,7 +51,7 @@ jobs:
     needs: build-job
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install versioning tool
         run: go install github.com/xchapter7x/versioning@latest
       - name: Determine Version
