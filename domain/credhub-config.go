@@ -17,6 +17,10 @@ func (cc *CredhubConfig) Type() string {
 	return cc.SourceType
 }
 
+func (cc *CredhubConfig) String() string {
+	return fmt.Sprintf("CredhubConfig{prefix:%s, mtls:%v}", cc.Prefix, cc.Client == nil)
+}
+
 func (cc *CredhubConfig) FromMap(properties map[string]interface{}) error {
 	if properties == nil {
 		return nil
