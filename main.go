@@ -32,13 +32,16 @@ func printUsage() int {
 }
 
 func main() {
-	if len(os.Args) == 1 {
+	switch true {
+	case len(os.Args) == 1:
 		fmt.Printf("config-hub %s (%s)\n\n", cfg.Version, cfg.Commit)
 		fmt.Println("Logging level :", log.LevelName(cfg.LogLevel))
 		server.Server()
-	} else if len(os.Args) < 3 || os.Args[1] != "credentials" {
+	case len(os.Args) == 2 && os.Args[1] == "version":
+		fmt.Println(cfg.Version)
+	case len(os.Args) < 3 || os.Args[1] != "credentials":
 		os.Exit(printUsage())
-	} else {
+	default:
 		cfg.FinishCredentialsConfiguration()
 		if e := Credentials(); e != nil {
 			fmt.Println("error getting credentials", e)
