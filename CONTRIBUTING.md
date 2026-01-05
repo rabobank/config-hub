@@ -342,18 +342,7 @@ The `.github/scripts/build.sh` script creates production builds with version inf
 VERSION=1.0.0 COMMIT=$(git rev-parse HEAD) ./.github/scripts/build.sh
 ```
 
-**Known Issue**: The build script contains a typo where the directory name uses `linux_amr64` instead of `linux_amd64`. This affects lines 6-7:
-```bash
-# Current (typo)
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $PWD/target/linux_amr64/config-hub ...
-tar czf ${OUTPUT_DIR}/config-hub-linux-amd64-${VERSION}.tgz -C $PWD/target/linux_amr64 config-hub
-
-# Should be
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $PWD/target/linux_amd64/config-hub ...
-tar czf ${OUTPUT_DIR}/config-hub-linux-amd64-${VERSION}.tgz -C $PWD/target/linux_amd64 config-hub
-```
-
-This typo should be fixed in a future PR.
+This script builds Linux AMD64 binaries and packages them into tar archives with version information embedded.
 
 ### Version Information
 
