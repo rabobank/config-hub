@@ -10,12 +10,12 @@ replace (
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
-	github.com/cloudfoundry-community/go-uaa v0.3.5
+	github.com/cloudfoundry-community/go-uaa v0.3.6
 	github.com/gomatbase/csn v1.0.1
 	github.com/gomatbase/go-log v1.1.0
 	github.com/gomatbase/go-we v1.0.0-b9
 	github.com/rabobank/credhub-client v0.0.1
-	golang.org/x/oauth2 v0.33.0
+	golang.org/x/oauth2 v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
