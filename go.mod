@@ -13,7 +13,7 @@ require (
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/gomatbase/csn v1.0.1
 	github.com/gomatbase/go-log v1.1.0
-	github.com/gomatbase/go-we v1.0.0-b9
+	github.com/gomatbase/go-we v1.0.0-b93
 	github.com/rabobank/credhub-client v0.0.1
 	golang.org/x/oauth2 v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
