@@ -3,19 +3,19 @@ module github.com/rabobank/config-hub
 go 1.24.0
 
 replace (
-	golang.org/x/net => golang.org/x/net v0.47.0
-	google.golang.org/protobuf => google.golang.org/protobuf v1.36.10
+	golang.org/x/net => golang.org/x/net v0.49.0
+	google.golang.org/protobuf => google.golang.org/protobuf v1.36.11
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
-	github.com/cloudfoundry-community/go-uaa v0.3.5
+	github.com/cloudfoundry-community/go-uaa v0.3.6
 	github.com/gomatbase/csn v1.0.1
 	github.com/gomatbase/go-log v1.1.0
 	github.com/gomatbase/go-we v1.0.0-b9
 	github.com/rabobank/credhub-client v0.0.1
-	golang.org/x/oauth2 v0.33.0
+	golang.org/x/oauth2 v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -28,9 +28,9 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/crypto v0.44.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
