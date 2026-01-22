@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gomatbase/csn"
 	"github.com/gomatbase/go-we"
 	"github.com/gomatbase/go-we/security"
 	"github.com/rabobank/config-hub/cfg"
@@ -14,6 +15,11 @@ import (
 const (
 	PermissionsUrl = "%s/v3/service_instances/%s/permissions"
 	UsersUrl       = "%s/Users/%s"
+)
+
+const (
+	AnonymousUserError = csn.Error("no authenticated user found")
+	NoTokenError       = csn.Error("no bearer token found for authenticated user")
 )
 
 type CfServiceInstancePermissions struct {
@@ -64,9 +70,9 @@ type UaaUser struct {
 	Schemas              []string  `json:"schemas"`
 }
 
-func isDeveloper(user *security.User, scope we.RequestScope) bool {
+func getServiceUserPermissions(user *security.User, scope we.RequestScope) (*CfServiceInstancePermissions, error) {
 	if user == nil {
-		return false
+		return nil, AnonymousUserError
 	}
 
 	bearerToken := scope.Request().Header.Get("Authorization")
@@ -74,7 +80,7 @@ func isDeveloper(user *security.User, scope we.RequestScope) bool {
 		// call is not authenticated with a bearer token, the user should have the token in the metadata
 		if token, isTokenData := user.Data.(*security.TokenData); !isTokenData {
 			// can't get a token to validate
-			return false
+			return nil, NoTokenError
 		} else {
 			bearerToken = "Bearer " + token.Raw
 		}
@@ -82,18 +88,39 @@ func isDeveloper(user *security.User, scope we.RequestScope) bool {
 
 	body, e := util.Request(fmt.Sprintf(PermissionsUrl, cfg.CfUrl, cfg.ServiceInstanceId)).WithAuthorization(bearerToken).Get()
 	if e != nil {
-		// log it
+		return nil, e
 	} else {
 		var permissions CfServiceInstancePermissions
 		if e = json.Unmarshal(body, &permissions); e != nil {
-			fmt.Printf("Unable to check user %s permissions for service %s: %v\n", user.Username, cfg.ServiceInstanceId, e)
-		} else if permissions.Manage {
-			return true
+			return nil, e
 		} else {
-			fmt.Printf("[AUTH] User %s has no permissions to manage requested service %s\n", user.Username, cfg.ServiceInstanceId)
+			return &permissions, nil
 		}
 	}
-	return false
+}
+
+func isDeveloper(user *security.User, scope we.RequestScope) bool {
+	if permissions, e := getServiceUserPermissions(user, scope); e != nil {
+		fmt.Printf("Unable to check user %s permissions for service %s: %v\n", user.Username, cfg.ServiceInstanceId, e)
+		return false
+	} else {
+		if !permissions.Manage {
+			fmt.Printf("[AUTH] User %s has no permissions to manage requested service %s\n", user.Username, cfg.ServiceInstanceId)
+		}
+		return permissions.Manage
+	}
+}
+
+func isAuditor(user *security.User, scope we.RequestScope) bool {
+	if permissions, e := getServiceUserPermissions(user, scope); e != nil {
+		fmt.Printf("Unable to check user %s permissions for service %s: %v\n", user.Username, cfg.ServiceInstanceId, e)
+		return false
+	} else {
+		if !permissions.Read {
+			fmt.Printf("[AUTH] User %s has no permissions to audit requested service %s\n", user.Username, cfg.ServiceInstanceId)
+		}
+		return permissions.Read
+	}
 }
 
 func enrichUaaUser(user *security.User) (*security.User, error) {
