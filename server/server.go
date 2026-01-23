@@ -46,7 +46,7 @@ func Server() {
 	securityFilter := security.Filter(true).
 		Path("/health", "/info").Anonymous().
 		Path("/credentials").Authorize(security.AuthorizationFunc(localhost)).
-		Path("/secrets", "/secrets/add", "/secrets/delete", "/secrets/list", "/cache").Authentication(bearerAuthenticationProvider).Authorize(allowedManagers).
+		Path("/secrets", "/secrets/add", "/secrets/delete", "/cache").Authentication(bearerAuthenticationProvider).Authorize(allowedManagers).
 		Path("/secrets/list").Authentication(bearerAuthenticationProvider).Authorize(allowedReaders).
 		Path("/dashboard").Authentication(ssoAuthenticationProvider).Authorize(allowedReaders).
 		Path("/**").Authentication(bearerAuthenticationProvider).Authorize(security.Scope("config_hub_" + cfg.ServiceInstanceId + ".read")).
